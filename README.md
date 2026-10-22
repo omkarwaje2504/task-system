@@ -1,0 +1,37 @@
+# Studio Desk
+
+Projects, tasks and the design library for the studio team. Built with Next.js 16 (App Router), MongoDB and Cloudflare R2.
+
+## Run it
+
+```bash
+bun install
+bun dev            # http://localhost:3000
+```
+
+`.env` needs the same keys as error-tracking-api: `MONGODB_URI`, `JWT_SECRET`, `CREDENTIALS_SECRET`, `R2_*`.
+Data goes in the `new-system` database (override with `MONGODB_DB`).
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `node --env-file=.env scripts/import-from-error-tracking.mjs` | Copies users, companies, brands, product types, printers, credentials and every RxPad project (with tasks + daily counts) from error-tracking-api's `task-tracker` DB. Read-only on the old DB, safe to re-run: existing records are never overwritten. |
+| `node --env-file=.env scripts/create-admin.mjs "Name" email "password"` | Creates or resets an admin when nobody can log in. |
+
+## How it's organised
+
+- **Product types** (`productTypes`): each has an icon/color, a **Projects tab** switch (special types get their own tab; the rest are grouped under "Others"), an **Asset tab** switch (adds a design library under Assets, with configurable image slots like Cover / Front / Back), and a **step template**.
+- **Projects** copy their product type's template into their own `steps` when created, so editing a template never breaks running projects. Step kinds:
+  - `check`: simple done/not-done
+  - `link`: needs a link (e.g. the client link)
+  - `languages`: male & female video per language, each with text setting and audio. It completes itself when everything is ticked. With no languages selected, the step defaults to English.
+  - `quantity`: RxPad-style daily added/completed/declined counts (`progress` collection)
+  - `printer`: pick a printer from Printer Types
+- **Company / brand** are typed freely and matched on a normalized key (`"Dr. Reddy's"` = `"dr reddys"`), so autosuggest + server-side matching avoid duplicates.
+- **Tasks** are simple to-dos with assignees, optionally linked to a project.
+- **Auth**: JWT in an httpOnly `ns_token` cookie. Only admins create accounts. Every API call re-checks that the user is still active and what their role is.
+- **Credentials** use the same AES-256-GCM scheme and secret as error-tracking-api. Revealing a password requires re-entering your own login password.
+- **Media tools** run fully in the browser (Mediabunny, pdf-lib, pdf.js).
+
+Pages live in `app/(app)/*` (client components using SWR), and APIs in `app/api/*`. Shared workflow logic is in `lib/workflow.ts`.

@@ -1,0 +1,64 @@
+import { NextResponse } from "next/server";
+import { connectDB, isId, notDeleted, oid } from "@/lib/db";
+import { bad, requireUser } from "@/lib/auth";
+import { resolveBrand, resolveCompany } from "@/lib/clients";
+import { logActivity } from "@/lib/activity";
+import { getProject } from "@/lib/projects";
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(_req: Request, { params }: Ctx) {
+  const s = await requireUser();
+  if (s instanceof NextResponse) return s;
+  const { id } = await params;
+  if (!isId(id)) return bad("Project not found.", 404);
+  const db = await connectDB();
+  const p = await getProject(db, oid(id));
+  return p ? NextResponse.json(p) : bad("Project not found.", 404);
+}
+
+export async function PUT(req: Request, { params }: Ctx) {
+  const s = await requireUser();
+  if (s instanceof NextResponse) return s;
+  const { id } = await params;
+  if (!isId(id)) return bad("Project not found.", 404);
+  const b = await req.json().catch(() => ({}));
+  const db = await connectDB();
+  const existing = await db.collection("projects").findOne({ _id: oid(id), ...notDeleted });
+  if (!existing) return bad("Project not found.", 404);
+
+  const set: Record<string, unknown> = { updatedAt: new Date() };
+  if (b.theme !== undefined) set.theme = String(b.theme).trim();
+  if (b.notes !== undefined) set.notes = String(b.notes).trim();
+  if (b.deadline !== undefined) set.deadline = b.deadline || null;
+  if (b.companyName !== undefined || b.brandName !== undefined) {
+    const companyId = await resolveCompany(db, b.companyName);
+    const { brand, company } = await resolveBrand(db, b.brandName, companyId);
+    set.brand = brand;
+    set.company = company;
+  }
+  if (b.status !== undefined && ["active", "completed", "on-hold"].includes(b.status) && b.status !== existing.status) {
+    set.status = b.status;
+    set.completedAt = b.status === "completed" ? new Date() : null;
+    const verb = b.status === "completed" ? "closed" : b.status === "on-hold" ? "put on hold" : "re-opened";
+    await logActivity(db, s, `project.${b.status}`, `${verb} a project`, { project: existing._id });
+  }
+  await db.collection("projects").updateOne({ _id: existing._id }, { $set: set });
+  return NextResponse.json(await getProject(db, existing._id));
+}
+
+export async function DELETE(_req: Request, { params }: Ctx) {
+  const s = await requireUser();
+  if (s instanceof NextResponse) return s;
+  const { id } = await params;
+  if (!isId(id)) return bad("Project not found.", 404);
+  const db = await connectDB();
+  const existing = await db.collection("projects").findOne({ _id: oid(id), ...notDeleted });
+  if (!existing) return bad("Project not found.", 404);
+  if (s.role !== "admin" && String(existing.createdBy) !== s.id) {
+    return bad("Only whoever created this project (or an admin) can delete it.", 403);
+  }
+  await db.collection("projects").updateOne({ _id: existing._id }, { $set: { deleted: true, updatedAt: new Date() } });
+  await logActivity(db, s, "project.deleted", "deleted a project", { project: existing._id });
+  return NextResponse.json({ ok: true });
+}
