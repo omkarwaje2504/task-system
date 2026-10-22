@@ -24,7 +24,7 @@ type Dash = {
 function Stat({ label, value, icon: Icon, danger, href }: { label: string; value?: number; icon: LucideIcon; danger?: boolean; href: string }) {
   const alert = danger && !!value;
   return (
-    <Link href={href} className="flex items-center gap-2.5 bg-panel px-3 py-2.5 transition-colors hover:bg-panel2/60">
+    <Link href={href} className="flex items-center gap-2.5 px-3 py-2.5 shadow-[1px_0_0_var(--line),0_1px_0_var(--line)] transition-colors hover:bg-panel2/60">
       <Icon className={`h-4 w-4 shrink-0 ${alert ? "text-danger" : "text-accent"}`} />
       <span className="min-w-0 flex-1 text-xs leading-tight font-semibold text-muted">{label}</span>
       <span className={`text-lg leading-none font-extrabold tabular-nums ${alert ? "text-danger" : ""}`}>{value ?? "–"}</span>
@@ -72,7 +72,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mb-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line lg:grid-cols-4">
+      <div className="mb-3 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-panel lg:grid-cols-4">
         <Stat label="Projects in progress" value={data?.stats.active} icon={FolderKanban} href="/projects/all" />
         <Stat label="Due in next 7 days" value={data?.stats.dueSoon} icon={CalendarClock} href="/projects/all" />
         <Stat label="Overdue" value={data?.stats.overdue} icon={TriangleAlert} danger href="/projects/all" />

@@ -73,12 +73,12 @@ export default function Combobox({
         </span>
       )}
       {open && matches.length > 0 && (
-        <ul className="animate-pop absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-line bg-panel p-1" style={{ boxShadow: "var(--shadow-lg)" }}>
+        <ul className="glass animate-pop absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-2xl p-1">
           {matches.map((o, i) => (
             <li key={o.value}>
               <button
                 type="button"
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] ${i === hi ? "bg-panel2" : ""}`}
+                className={`flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[13px] ${i === hi ? "bg-panel2" : ""}`}
                 onMouseEnter={() => setHi(i)}
                 onMouseDown={(e) => { e.preventDefault(); pick(o); }}
               >

@@ -35,15 +35,14 @@ export default function Modal({
 
   if (!open) return null;
   return (
-    <div className="animate-fade fixed inset-0 z-[90] flex items-end justify-center bg-black/50 backdrop-blur-[2px] sm:items-center sm:p-6" onMouseDown={onClose}>
+    <div className="animate-fade fixed inset-0 z-[90] flex items-end justify-center bg-black/40 sm:items-center sm:p-6" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-modal="true"
-        className={`animate-sheet flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-line bg-panel sm:rounded-xl ${WIDTHS[size]}`}
-        style={{ boxShadow: "var(--shadow-lg)" }}
+        className={`glass animate-sheet flex max-h-[92dvh] w-full flex-col rounded-t-[28px] sm:rounded-[24px] ${WIDTHS[size]}`}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto mt-2 h-1 w-9 rounded-full bg-line sm:hidden" />
+        <div className="mx-auto mt-2 h-1 w-9 rounded-full bg-fg/25 sm:hidden" />
         <div className="flex items-start gap-2.5 px-4 pt-3 pb-2.5 sm:px-5 sm:pt-4">
           {icon}
           <div className="min-w-0 flex-1">

@@ -14,15 +14,14 @@ export default function ToastHost() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   useEffect(() => subscribeToasts(setToasts), []);
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-[120] flex flex-col items-center gap-2 px-4 lg:bottom-6 lg:left-auto lg:right-6 lg:items-end">
+    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-[120] flex flex-col items-center gap-2 px-4 lg:bottom-24lg:left-auto lg:right-6 lg:items-end">
       {toasts.map((t) => {
         const { icon: Icon, cls } = STYLES[t.type];
         return (
           <div
             key={t.id}
             role="status"
-            className="animate-pop pointer-events-auto flex w-full max-w-sm items-start gap-2 rounded-lg border border-line bg-panel px-3 py-2 text-[13px] font-medium"
-            style={{ boxShadow: "var(--shadow-lg)" }}
+            className="glass animate-pop pointer-events-auto flex w-full max-w-sm items-start gap-2 rounded-2xl px-3.5 py-2.5 text-[13px] font-medium"
           >
             <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${cls}`} />
             <span className="flex-1">{t.message}</span>

@@ -176,10 +176,10 @@ export function Tabs({ items, active, onChange }: { items: TabItem[]; active: st
 /** Small segmented control, e.g. status filters. */
 export function Segmented<T extends string>({ items, value, onChange }: { items: { key: T; label: ReactNode }[]; value: T; onChange: (k: T) => void }) {
   return (
-    <div className="no-scrollbar flex shrink-0 gap-0.5 overflow-x-auto rounded-lg border border-line bg-panel p-0.5">
+    <div className="no-scrollbar flex shrink-0 gap-0.5 overflow-x-auto rounded-xl border border-line bg-panel p-0.5">
       {items.map((s) => (
         <button key={s.key} onClick={() => onChange(s.key)}
-          className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold ${value === s.key ? "bg-accent-soft text-accent" : "text-muted hover:text-fg"}`}>
+          className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold ${value === s.key ? "bg-accent-soft text-accent" : "text-muted hover:text-fg"}`}>
           {s.label}
         </button>
       ))}

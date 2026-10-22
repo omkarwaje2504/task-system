@@ -3,40 +3,56 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Three colours only: neutral greys, one indigo accent, and red for
- * danger/overdue. Nothing else should introduce a hue.
+ * iPhone-style liquid glass. Neutral greys, one blue accent (iOS system blue) and
+ * red for danger/overdue on a plain background; surfaces are translucent.
+ * `--panel` tints cards and inputs; `--glass` is the frosted fill for chrome
+ * that floats over content (sidebar, bars, sheets, popovers, toasts).
  */
 :root {
-  --bg: #f6f7f9;
-  --panel: #ffffff;
-  --panel-2: #f1f2f5;
-  --line: #e4e6eb;
-  --fg: #18181b;
-  --muted: #6b7280;
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
+  --bg: #f2f2f7;
+  --panel: rgba(255, 255, 255, 0.62);
+  --panel-2: rgba(118, 118, 128, 0.1);
+  --line: rgba(60, 60, 67, 0.12);
+  --fg: #1c1c1e;
+  --muted: rgba(60, 60, 67, 0.64);
+  --accent: #007aff;
+  --accent-hover: #0062cc;
   --accent-fg: #ffffff;
-  --accent-soft: rgba(79, 70, 229, 0.09);
-  --danger: #dc2626;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --shadow-lg: 0 12px 28px -8px rgba(16, 24, 40, 0.2);
+  --accent-soft: rgba(0, 122, 255, 0.12);
+  --danger: #ff3b30;
+  --glass: rgba(255, 255, 255, 0.5);
+  --glass-edge: rgba(255, 255, 255, 0.45);
+  --glass-hi: inset 0 1px 0.5px rgba(255, 255, 255, 0.95), inset 0 -1px 0.5px rgba(255, 255, 255, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.35);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12) 45%, rgba(255, 255, 255, 0.28));
+  --rim: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.35) 28%, rgba(0, 0, 0, 0.05) 50%, rgba(255, 255, 255, 0.35) 72%, rgba(255, 255, 255, 0.9));
+  --btn-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 60%);
+  --btn-hi: inset 0 1px 0.5px rgba(255, 255, 255, 0.55), inset 0 -1px 1px rgba(0, 0, 0, 0.12);
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 6px 20px -10px rgba(16, 24, 40, 0.18);
+  --shadow-lg: 0 24px 60px -16px rgba(16, 24, 40, 0.3);
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0c0d10;
-  --panel: #131419;
-  --panel-2: #1b1d24;
-  --line: #272a33;
-  --fg: #e7e8ec;
-  --muted: #8b90a0;
-  --accent: #818cf8;
-  --accent-hover: #a5b4fc;
-  --accent-fg: #0c0d10;
-  --accent-soft: rgba(129, 140, 248, 0.14);
-  --danger: #f87171;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 16px 36px -8px rgba(0, 0, 0, 0.65);
+  --bg: #000000;
+  --panel: rgba(255, 255, 255, 0.065);
+  --panel-2: rgba(255, 255, 255, 0.085);
+  --line: rgba(255, 255, 255, 0.1);
+  --fg: #f5f5f7;
+  --muted: rgba(235, 235, 245, 0.6);
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(10, 132, 255, 0.2);
+  --danger: #ff453a;
+  --glass: rgba(24, 24, 28, 0.5);
+  --glass-edge: rgba(255, 255, 255, 0.07);
+  --glass-hi: inset 0 1px 0.5px rgba(255, 255, 255, 0.22), inset 0 -1px 0.5px rgba(255, 255, 255, 0.07), inset 0 0 24px rgba(255, 255, 255, 0.035);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.015) 40%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.03));
+  --rim: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.08) 28%, rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.08) 72%, rgba(255, 255, 255, 0.3));
+  --btn-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 60%);
+  --btn-hi: inset 0 1px 0.5px rgba(255, 255, 255, 0.45), inset 0 -1px 1px rgba(0, 0, 0, 0.18);
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 10px 28px -14px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 28px 70px -16px rgba(0, 0, 0, 0.85);
   color-scheme: dark;
 }
 
@@ -50,8 +66,10 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-danger: var(--danger);
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", var(--font-geist-mono), monospace;
+  /* iOS tops out at Bold for titles; "extrabold" reads too heavy next to SF. */
+  --font-weight-extrabold: 700;
 }
 
 html,
@@ -60,10 +78,24 @@ body {
   color: var(--fg);
 }
 
+/* SF-style metrics: slightly tight tracking, optical sizing, grayscale AA. */
 body {
   font-family: var(--font-sans);
-  font-size: 14.5px;
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: -0.012em;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
+}
+@layer base {
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.022em;
+  }
 }
 
 ::selection {
@@ -71,9 +103,59 @@ body {
 }
 
 @layer components {
+  /*
+   * Liquid glass: a clear, lightly blurred body, a sheen across the top,
+   * inner specular highlights, and a rim of light that catches the top-left
+   * and bottom-right corners (the ::after ring below).
+   * `position: relative` loses to Tailwind's absolute/fixed/sticky
+   * utilities, which sit in a later layer.
+   */
   .card {
-    @apply rounded-xl border border-line bg-panel p-5;
-    box-shadow: var(--shadow);
+    @apply relative rounded-2xl border border-line p-5;
+    background: var(--glass-sheen), var(--panel);
+    box-shadow: var(--glass-hi), var(--shadow);
+  }
+
+  /*
+   * The blur lives on a ::before layer so the element itself doesn't become
+   * a containing block for fixed children (modals rendered inside the
+   * sidebar, etc.).
+   */
+  .glass {
+    position: relative;
+    border: 1px solid var(--glass-edge);
+    background: var(--glass-sheen), var(--glass);
+    box-shadow: var(--glass-hi), var(--shadow-lg);
+  }
+  .glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    -webkit-backdrop-filter: blur(16px) saturate(190%) brightness(1.08);
+    backdrop-filter: blur(16px) saturate(190%) brightness(1.08);
+    pointer-events: none;
+  }
+  .card::after,
+  .glass::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--rim);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .glass-flat {
+    background: var(--glass);
+    box-shadow: var(--glass-hi);
+  }
+  .glass-flat::after {
+    display: none;
   }
 
   .btn,
@@ -81,29 +163,104 @@ body {
   .btn-ghost,
   .btn-soft,
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50;
   }
+  /* iOS-style solid button: white in dark mode, black in light mode. */
   .btn-primary {
-    @apply bg-accent text-[var(--accent-fg)] hover:bg-[var(--accent-hover)];
+    @apply bg-fg text-[var(--bg)] hover:bg-fg/90;
+    background-image: var(--btn-sheen);
+    box-shadow: var(--btn-hi), 0 8px 22px -12px rgba(255, 255, 255, 0.35);
   }
   .btn-ghost {
     @apply border border-line bg-panel text-fg hover:bg-panel2;
+    background-image: var(--glass-sheen);
+    box-shadow: var(--glass-hi);
   }
   .btn-soft {
     @apply bg-accent-soft text-accent hover:bg-accent hover:text-[var(--accent-fg)];
+    box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.14);
   }
   .btn-danger {
     @apply bg-danger text-white hover:opacity-90;
+    background-image: var(--btn-sheen);
+    box-shadow: var(--btn-hi), 0 8px 20px -10px var(--danger);
   }
   .btn-sm {
-    @apply gap-1.5 rounded-md px-2.5 py-1.5 text-xs;
+    @apply gap-1.5 rounded-lg px-2.5 py-1.5 text-xs;
   }
   .icon-btn {
-    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-panel2 hover:text-fg;
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-panel2 hover:text-fg;
+  }
+
+  /*
+   * Tab icons are outlined at rest and fill in (with a small pop) on the
+   * current page, while pressed, or when focused from the keyboard.
+   */
+  /* Hidden with opacity, not display: a mask inside display:none won't apply. */
+  .tab-ico {
+    position: relative;
+  }
+  .tab-ico-fill {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    color: var(--fg); /* the filled state is always white (dark) / black (light) */
+  }
+  :is([aria-current="page"], .tap:active, .tap:focus-visible) .tab-ico-line {
+    opacity: 0;
+  }
+  :is([aria-current="page"], .tap:active, .tap:focus-visible) .tab-ico-fill {
+    opacity: 1;
+    animation: icon-fill 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* The selected tab sits under a small glass lens. */
+  .tab-lens {
+    background: var(--glass-sheen), var(--panel-2);
+    box-shadow: var(--glass-hi);
+  }
+
+  /*
+   * iOS liquid-glass press: the control swells and brightens while held,
+   * light blooms from the touch point (--tap-x/--tap-y, set by TapGlow),
+   * and it springs back with a slight overshoot on release.
+   */
+  :is(.btn, .btn-primary, .btn-ghost, .btn-soft, .btn-danger, .icon-btn, .tap) {
+    position: relative;
+    transition:
+      transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+      filter 0.3s ease,
+      color 0.15s,
+      background-color 0.15s,
+      box-shadow 0.2s;
+  }
+  :is(.btn, .btn-primary, .btn-ghost, .btn-soft, .btn-danger, .icon-btn, .tap)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at var(--tap-x, 50%) var(--tap-y, 50%), rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.08) 45%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    pointer-events: none;
+  }
+  :is(.btn, .btn-primary, .btn-ghost, .btn-soft, .btn-danger, .icon-btn, .tap):active:not(:disabled) {
+    transform: scale(1.06);
+    filter: brightness(1.12) saturate(1.1);
+    transition-duration: 0.18s, 0.12s, 0.15s, 0.15s, 0.2s;
+    transition-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+  :is(.btn, .btn-primary, .btn-ghost, .btn-soft, .btn-danger, .icon-btn, .tap):active:not(:disabled)::after {
+    opacity: 1;
+    transition-duration: 0.08s;
+  }
+  /* Wide rows (sidebar links) swell less, like iOS list cells. */
+  .tap.group:active {
+    transform: scale(1.025);
   }
 
   .input {
-    @apply w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-fg outline-none transition-shadow placeholder:text-muted/70 focus:border-accent;
+    @apply w-full rounded-xl border border-line bg-panel px-3 py-2 text-sm text-fg outline-none transition-shadow placeholder:text-muted/70 focus:border-accent;
   }
   .input:focus {
     box-shadow: 0 0 0 3px var(--accent-soft);
@@ -161,6 +318,14 @@ body {
   }
   to {
     opacity: 1;
+    transform: none;
+  }
+}
+@keyframes icon-fill {
+  from {
+    transform: scale(0.82);
+  }
+  to {
     transform: none;
   }
 }

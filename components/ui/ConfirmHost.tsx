@@ -37,8 +37,8 @@ export default function ConfirmHost() {
 
   if (!confirm && !prompt) return null;
   return (
-    <div className="animate-fade fixed inset-0 z-[110] grid place-items-center bg-black/50 p-4" onMouseDown={() => (confirm ? closeConfirm(false) : closePrompt(null))}>
-      <div className="animate-pop card w-full max-w-sm" style={{ boxShadow: "var(--shadow-lg)" }} onMouseDown={(e) => e.stopPropagation()}>
+    <div className="animate-fade fixed inset-0 z-[110] grid place-items-center bg-black/40 p-4" onMouseDown={() => (confirm ? closeConfirm(false) : closePrompt(null))}>
+      <div className="glass animate-pop w-full max-w-sm rounded-[24px] p-5" onMouseDown={(e) => e.stopPropagation()}>
         {confirm ? (
           <>
             <div className="mb-4 flex gap-2.5">

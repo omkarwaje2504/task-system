@@ -23,7 +23,7 @@ function UserList({ selected, onToggle, query, setQuery }: { selected: string[];
     [users, query],
   );
   return (
-    <div className="animate-pop absolute z-50 mt-1 w-full min-w-52 rounded-lg border border-line bg-panel p-1" style={{ boxShadow: "var(--shadow-lg)" }}>
+    <div className="glass animate-pop absolute z-50 mt-1 w-full min-w-52 rounded-2xl p-1">
       <input className="input mb-1" placeholder="Search people…" value={query} autoFocus onChange={(e) => setQuery(e.target.value)} />
       <ul className="max-h-60 overflow-y-auto">
         {list.map((u) => (

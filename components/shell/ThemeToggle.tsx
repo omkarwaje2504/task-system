@@ -11,7 +11,7 @@ const subscribe = (cb: () => void) => {
 const isDark = () => document.documentElement.classList.contains("dark");
 
 export function useDarkMode() {
-  const dark = useSyncExternalStore(subscribe, isDark, () => false);
+  const dark = useSyncExternalStore(subscribe, isDark, () => true);
   const toggle = () => {
     const next = !isDark();
     document.documentElement.classList.toggle("dark", next);

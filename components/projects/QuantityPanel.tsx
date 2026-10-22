@@ -64,9 +64,9 @@ export default function QuantityPanel({ projectId, step, onSaveSettings, onChang
 
   return (
     <div className="mt-2 space-y-2">
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-panel sm:grid-cols-4">
         {tiles.map((x) => (
-          <div key={x.label} className="bg-panel px-3 py-1.5">
+          <div key={x.label} className="px-3 py-1.5 shadow-[1px_0_0_var(--line),0_1px_0_var(--line)]">
             <p className="text-[11px] font-semibold text-muted">{x.label}</p>
             <p className={`text-base font-extrabold tabular-nums ${x.cls}`}>{x.value.toLocaleString()} <span className="text-[11px] font-semibold text-muted">{unit}</span></p>
           </div>

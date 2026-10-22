@@ -4,27 +4,29 @@ import { Suspense, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Building, ChevronDown, Clapperboard, FolderKanban, Images, KeyRound, LayoutDashboard, LayoutGrid, LogOut,
-  Menu, Printer, Settings2, ShieldCheck, SquareCheckBig, Users, Wrench, X, type LucideIcon,
+  Building, ChevronDown, Clapperboard, KeyRound, LayoutGrid, LogOut,
+  Menu, Printer, Settings2, ShieldCheck, Users, Wrench, X, type LucideIcon,
 } from "lucide-react";
 import { api, useMe, useTypes } from "@/lib/client";
 import TypeIcon from "@/components/ui/TypeIcon";
 import { Avatar } from "@/components/ui/bits";
 import ThemeToggle from "./ThemeToggle";
 import AccountModal from "./AccountModal";
+import TabIcon, { type TabIconName } from "./TabIcon";
 
 export const APP_NAME = "Studio Desk";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (p: string) => boolean };
 
 const lucide = (Icon: LucideIcon) => <Icon className="h-4 w-4" strokeWidth={2.1} />;
+const tabIcon = (name: TabIconName) => <TabIcon name={name} className="h-4 w-4" />;
 
 function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const path = usePathname();
   const active = item.match ? item.match(path) : path === item.href;
   return (
-    <Link href={item.href} onClick={onNavigate}
-      className={`group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors ${
+    <Link href={item.href} onClick={onNavigate} aria-current={active ? "page" : undefined}
+      className={`tap group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] font-medium ${
         active ? "bg-accent-soft font-semibold text-accent" : "text-muted hover:bg-panel2 hover:text-fg"
       }`}>
       <span className={active ? "" : "opacity-90 group-hover:opacity-100"}>{item.icon}</span>
@@ -78,7 +80,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <Link href="/dashboard" onClick={onNavigate} className="flex items-center gap-2 px-4 pt-3.5 pb-1">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-[var(--accent-fg)]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#5e5ce6] to-accent text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]">
           <Clapperboard className="h-4 w-4" strokeWidth={2.4} />
         </span>
         <span className="text-[15px] font-extrabold tracking-tight">{APP_NAME}</span>
@@ -86,13 +88,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav className="flex-1 overflow-y-auto px-2 pt-2 pb-3">
         <div className="space-y-0.5">
-          <NavLink onNavigate={onNavigate} item={{ href: "/dashboard", label: "Dashboard", icon: lucide(LayoutDashboard) }} />
-          <NavLink onNavigate={onNavigate} item={{ href: "/tasks", label: "My Tasks", icon: lucide(SquareCheckBig) }} />
+          <NavLink onNavigate={onNavigate} item={{ href: "/dashboard", label: "Dashboard", icon: tabIcon("home") }} />
+          <NavLink onNavigate={onNavigate} item={{ href: "/tasks", label: "My Tasks", icon: tabIcon("tasks") }} />
         </div>
 
         <Section title="Projects" storageKey="projects"
           action={<Link href="/projects/all?new=1" onClick={onNavigate} className="text-xs font-bold text-accent hover:underline">+ New</Link>}>
-          <NavLink onNavigate={onNavigate} item={{ href: "/projects/all", label: "All projects", icon: lucide(FolderKanban), match: (p) => p === "/projects/all" || p === "/projects" }} />
+          <NavLink onNavigate={onNavigate} item={{ href: "/projects/all", label: "All projects", icon: tabIcon("projects"), match: (p) => p === "/projects/all" || p === "/projects" }} />
           {loadingRows}
           {special.map((t) => (
             <NavLink key={t._id} onNavigate={onNavigate} item={{ href: `/projects/${t.slug}`, label: t.name, icon: <TypeIcon icon={t.icon} size="xs" /> }} />
@@ -144,11 +146,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-const BOTTOM = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard, match: (p: string) => p === "/dashboard" },
-  { href: "/projects/all", label: "Projects", icon: FolderKanban, match: (p: string) => p.startsWith("/projects") || p.startsWith("/project/") },
-  { href: "/tasks", label: "Tasks", icon: SquareCheckBig, match: (p: string) => p === "/tasks" },
-  { href: "/assets", label: "Assets", icon: Images, match: (p: string) => p.startsWith("/assets") },
+const BOTTOM: { href: string; label: string; icon: TabIconName; match: (p: string) => boolean }[] = [
+  { href: "/dashboard", label: "Home", icon: "home", match: (p: string) => p === "/dashboard" },
+  { href: "/projects/all", label: "Projects", icon: "projects", match: (p: string) => p.startsWith("/projects") || p.startsWith("/project/") },
+  { href: "/tasks", label: "Tasks", icon: "tasks", match: (p: string) => p === "/tasks" },
+  { href: "/assets", label: "Assets", icon: "assets", match: (p: string) => p.startsWith("/assets") },
 ];
 
 function SidebarSkeleton() {
@@ -164,17 +166,18 @@ function BottomNav({ onMore }: { onMore: () => void }) {
   const path = usePathname();
   return (
     <>
-      {BOTTOM.map(({ href, label, icon: Icon, match }) => {
+      {BOTTOM.map(({ href, label, icon, match }) => {
         const on = match(path);
         return (
-          <Link key={href} href={href} className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold ${on ? "text-accent" : "text-muted"}`}>
-            <Icon className="h-5 w-5" strokeWidth={on ? 2.4 : 2} />
+          <Link key={href} href={href} aria-current={on ? "page" : undefined}
+            className={`tap flex flex-1 flex-col items-center gap-0.5 rounded-[26px] py-1.5 text-[10px] font-semibold ${on ? "tab-lens text-fg" : "text-muted hover:text-fg"}`}>
+            <TabIcon name={icon} />
             {label}
           </Link>
         );
       })}
-      <button onClick={onMore} className="flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold text-muted">
-        <Menu className="h-5 w-5" />
+      <button onClick={onMore} className="tap flex flex-1 flex-col items-center gap-0.5 rounded-[26px] py-1.5 text-[10px] font-semibold text-muted lg:hidden">
+        <TabIcon name="more" />
         More
       </button>
     </>
@@ -201,15 +204,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] border-r border-line bg-panel lg:block">
+      <aside className="glass fixed inset-y-3 left-3 z-30 hidden w-[220px] rounded-[22px] lg:block">
         <Suspense fallback={<SidebarSkeleton />}><SidebarContent /></Suspense>
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center gap-1.5 border-b border-line bg-panel/90 px-2 py-1.5 backdrop-blur-lg lg:hidden">
+      <header className="glass glass-flat sticky top-0 z-30 flex items-center gap-1.5 !border-x-0 !border-t-0 !border-b-line px-2 py-1.5 lg:hidden">
         <button className="icon-btn" onClick={() => setDrawer(true)} aria-label="Open menu"><Menu className="h-4.5 w-4.5" /></button>
         <Link href="/dashboard" className="flex items-center gap-2 text-[15px] font-extrabold">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent text-[var(--accent-fg)]">
+          <span className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-gradient-to-br from-[#5e5ce6] to-accent text-white">
             <Clapperboard className="h-4 w-4" strokeWidth={2.4} />
           </span>
           {APP_NAME}
@@ -219,20 +222,20 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile drawer */}
       {drawer && (
-        <div className="animate-fade fixed inset-0 z-[80] bg-black/50 lg:hidden" onClick={() => setDrawer(false)}>
-          <aside className="relative h-full w-[80%] max-w-[260px] border-r border-line bg-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="animate-fade fixed inset-0 z-[80] bg-black/40 lg:hidden" onClick={() => setDrawer(false)}>
+          <aside className="glass absolute inset-y-2 left-2 w-[80%] max-w-[260px] rounded-[22px]" onClick={(e) => e.stopPropagation()}>
             <button className="icon-btn absolute top-2.5 right-2" onClick={() => setDrawer(false)} aria-label="Close menu"><X className="h-4 w-4" /></button>
             <Suspense fallback={<SidebarSkeleton />}><SidebarContent onNavigate={() => setDrawer(false)} /></Suspense>
           </aside>
         </div>
       )}
 
-      <main className="px-3 pt-3 pb-24 sm:px-5 lg:ml-[220px] lg:px-6 lg:pt-5 lg:pb-8">
+      <main className="px-3 pt-3 pb-28 sm:px-5 lg:ml-[232px] lg:px-6 lg:pt-5">
         <div className="mx-auto max-w-[1440px]"><Suspense fallback={<PageSkeleton />}>{children}</Suspense></div>
       </main>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg lg:hidden">
+      {/* Floating tab bar, iOS style — on every screen; centred over the content area on desktop */}
+      <nav className="glass fixed bottom-[max(12px,env(safe-area-inset-bottom))] left-1/2 z-30 flex w-[calc(100%-24px)] max-w-[440px] -translate-x-1/2 gap-0.5 rounded-[30px] p-1 lg:left-[calc(50%+116px)] lg:max-w-[380px]">
         <Suspense fallback={null}><BottomNav onMore={() => setDrawer(true)} /></Suspense>
       </nav>
     </div>
