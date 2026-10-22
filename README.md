@@ -16,8 +16,9 @@ Data goes in the `new-system` database (override with `MONGODB_DB`).
 
 | Command | What it does |
 | --- | --- |
-| `node --env-file=.env scripts/import-from-error-tracking.mjs` | Copies users, companies, brands, product types, printers, credentials and every RxPad project (with tasks + daily counts) from error-tracking-api's `task-tracker` DB. Read-only on the old DB, safe to re-run: existing records are never overwritten. |
+| `node --env-file=.env scripts/import-from-error-tracking.mjs` | Copies users, companies, brands, product types, printers, credentials, every project of every type (reshaped into its type's steps, with tasks + daily counts) and the activity history from error-tracking-api's `task-tracker` DB. Discussions, links, client, sales/service person and attachments go into project notes. Read-only on the old DB, safe to re-run: existing records are never overwritten. |
 | `node --env-file=.env scripts/create-admin.mjs "Name" email "password"` | Creates or resets an admin when nobody can log in. |
+| `node --env-file=.env scripts/backup-and-reset.mjs [--clear]` | Saves every collection to `backups/<db>-<time>/` as Extended JSON. With `--clear`, then empties every collection except `users`. `--restore backups/<folder>` puts a backup back into empty collections. |
 
 ## How it's organised
 
