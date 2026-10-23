@@ -33,5 +33,5 @@ export async function proxy(req: NextRequest) {
 export const config = {
   // Pages only — skip API routes, Next internals and static files.
   // Also skips the icon / share-image / manifest routes: link-preview bots aren't signed in.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon|apple-icon|opengraph-image|twitter-image|manifest.webmanifest|.*\\.(?:png|jpg|jpeg|svg|webp|ico|gif)$).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon|apple-icon|opengraph-image|twitter-image|manifest.webmanifest|firebase-messaging-sw.js|.*\\.(?:png|jpg|jpeg|svg|webp|ico|gif)$).*)"],
 };

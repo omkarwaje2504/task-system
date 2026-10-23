@@ -25,6 +25,8 @@ export async function PUT(req: Request, { params }: Ctx) {
   }
   if (body.mobile !== undefined) set.mobile = String(body.mobile).trim();
   if (body.team !== undefined) set.team = String(body.team).trim();
+  // Team lead: notified when people in their team start or finish work.
+  if (body.lead !== undefined) set.lead = !!body.lead;
   if (body.role !== undefined) {
     if (id === s.id && body.role !== "admin") return bad("You can't remove your own admin access.");
     set.role = body.role === "admin" ? "admin" : "member";

@@ -9,6 +9,8 @@ export type User = {
   mobile?: string;
   role: "admin" | "member";
   team?: string;
+  /** Team lead: gets notified when their team starts or finishes work. */
+  lead?: boolean;
   active?: boolean;
   lastLoginAt?: string;
 };

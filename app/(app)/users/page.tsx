@@ -22,14 +22,15 @@ function UserModal({ user, onClose }: { user?: User; onClose: () => void }) {
     name: user?.name || "", email: user?.email || "", mobile: user?.mobile || "", team: user?.team || "",
     role: user?.role || "member", password: "",
   });
+  const [lead, setLead] = useState(!!user?.lead);
   const [saving, setSaving] = useState(false);
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   async function save() {
     setSaving(true);
     try {
-      if (user) await api(`/api/users/${user._id}`, { method: "PUT", body: { ...form, password: form.password || undefined } });
-      else await api("/api/users", { body: form });
+      if (user) await api(`/api/users/${user._id}`, { method: "PUT", body: { ...form, lead, password: form.password || undefined } });
+      else await api("/api/users", { body: { ...form, lead } });
       toast.success(user ? "User saved." : `Account created. Share the password with ${form.name.split(" ")[0]}.`);
       refresh("/api/users");
       onClose();
@@ -58,6 +59,13 @@ function UserModal({ user, onClose }: { user?: User; onClose: () => void }) {
           </select>
         </Field>
       </div>
+      <label className="mb-3 flex cursor-pointer items-start gap-2 rounded-lg border border-line px-2.5 py-2">
+        <input type="checkbox" className="mt-0.5 accent-accent" checked={lead} onChange={(e) => setLead(e.target.checked)} />
+        <span>
+          <span className="block text-[0.8125rem] font-semibold">Team lead</span>
+          <span className="text-[0.6875rem] text-muted">Gets notified when people in their team{form.team ? ` (${form.team})` : ""} start or finish work. Admins get these for everyone.</span>
+        </span>
+      </label>
       <Field label={user ? "New password" : "Password"} optional={!!user} help={user ? "Leave empty to keep their current password." : "At least 6 characters. They can change it later."}>
         <div className="flex gap-2">
           <input className="input font-mono" value={form.password} onChange={(e) => set("password", e.target.value)} />
@@ -136,7 +144,7 @@ export default function UsersPage() {
                     <td><span className="flex items-center gap-2 font-semibold"><Avatar name={u.name} size="sm" />{u.name}{u.role === "admin" && <ShieldCheck className="h-3.5 w-3.5 text-accent" aria-label="Admin" />}</span></td>
                     <td className="text-muted">{u.email}</td>
                     <td className="text-muted">{u.mobile || "—"}</td>
-                    <td className="text-muted capitalize">{u.team || "—"}</td>
+                    <td className="text-muted capitalize">{u.team || "—"}{u.lead && <span className="chip ml-1.5 bg-accent-soft text-accent normal-case">Lead</span>}</td>
                     <td>
                       {u.active === false ? <span className="chip bg-danger/10 text-danger">Switched off</span>
                         : <span className={`chip ${u.role === "admin" ? "bg-accent-soft text-accent" : "bg-panel2 text-muted"}`}>{u.role === "admin" ? "Admin" : "Member"}</span>}

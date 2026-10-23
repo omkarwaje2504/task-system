@@ -12,6 +12,7 @@ import TypeIcon from "@/components/ui/TypeIcon";
 import { Avatar } from "@/components/ui/bits";
 import ThemeToggle from "./ThemeToggle";
 import AccountModal from "./AccountModal";
+import NotificationBell from "./NotificationBell";
 import { AppearanceSync } from "@/components/settings/useAppearance";
 import TabIcon, { type TabIconName } from "./TabIcon";
 
@@ -207,6 +208,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
       <AppearanceSync />
+      {/* Notifications: top-right corner on desktop (phones have it in the top bar) */}
+      <div className="glass fixed top-3 right-4 z-40 hidden rounded-full p-0.5 lg:block"><NotificationBell /></div>
       {/* Desktop sidebar */}
       <aside className="glass fixed inset-y-3 left-3 z-30 hidden w-[220px] rounded-[22px] lg:block">
         <Suspense fallback={<SidebarSkeleton />}><SidebarContent /></Suspense>
@@ -221,7 +224,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           </span>
           {APP_NAME}
         </Link>
-        <div className="ml-auto"><ThemeToggle /></div>
+        <div className="ml-auto flex items-center"><NotificationBell /><ThemeToggle /></div>
       </header>
 
       {/* Mobile drawer */}
@@ -234,7 +237,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <main className="px-3 pt-3 pb-28 sm:px-5 lg:ml-[232px] lg:px-6 lg:pt-5 lg:pb-8">
+      <main className="px-3 pt-3 pb-28 sm:px-5 lg:ml-[232px] lg:pt-5 lg:pr-20 lg:pb-8 lg:pl-6">
         <div className="mx-auto max-w-[1440px]"><Suspense fallback={<PageSkeleton />}>{children}</Suspense></div>
       </main>
 

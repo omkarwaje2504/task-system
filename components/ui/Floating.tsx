@@ -11,13 +11,15 @@ const GAP = 4;
  * overflow-hidden, scrolling modals and tables can't clip it. Opens upward
  * when there's no room below, and follows the anchor while the page scrolls.
  */
-export default function FloatingPanel({ anchor, panelRef, children, className = "", estHeight = 300 }: {
+export default function FloatingPanel({ anchor, panelRef, children, className = "", estHeight = 300, width: fixedWidth }: {
   anchor: RefObject<HTMLElement | null>;
   panelRef?: RefObject<HTMLDivElement | null>;
   children: ReactNode;
   className?: string;
   /** Roughly how tall the panel gets — decides when to flip upward. */
   estHeight?: number;
+  /** Fixed width (else the anchor's width); the panel stays inside the screen either way. */
+  width?: number;
 }) {
   const [style, setStyle] = useState<CSSProperties | null>(null);
 
@@ -26,7 +28,7 @@ export default function FloatingPanel({ anchor, panelRef, children, className = 
       const el = anchor.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      const width = Math.max(r.width, MIN_WIDTH);
+      const width = Math.min(window.innerWidth - 16, fixedWidth ?? Math.max(r.width, MIN_WIDTH));
       const below = window.innerHeight - r.bottom;
       const up = below < estHeight && r.top > below;
       setStyle({
@@ -43,7 +45,7 @@ export default function FloatingPanel({ anchor, panelRef, children, className = 
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
     };
-  }, [anchor, estHeight]);
+  }, [anchor, estHeight, fixedWidth]);
 
   if (!style) return null;
   return createPortal(

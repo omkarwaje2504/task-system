@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const s = await requireAdmin();
   if (s instanceof NextResponse) return s;
-  const { name, email, mobile, password, role, team } = await req.json().catch(() => ({}));
+  const { name, email, mobile, password, role, team, lead } = await req.json().catch(() => ({}));
   if (!name?.trim()) return bad("Name is required.");
   if (!email?.trim()) return bad("Email is required.");
   if (!password || String(password).length < 6) return bad("Password must be at least 6 characters.");
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     password: await bcrypt.hash(String(password), 10),
     role: role === "admin" ? "admin" : "member",
     team: (team || "").trim(),
+    lead: !!lead,
     active: true,
     deleted: false,
     createdAt: now,

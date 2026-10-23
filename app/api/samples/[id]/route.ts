@@ -3,6 +3,7 @@ import { connectDB, isId, notDeleted, oid } from "@/lib/db";
 import { bad, requireUser } from "@/lib/auth";
 import { resolveBrand, resolveCompany } from "@/lib/clients";
 import { logActivity } from "@/lib/activity";
+import { notify, projectLabel, watcherIds } from "@/lib/notify";
 import { getProject } from "@/lib/projects";
 import { PICKABLE, SAMPLE_STATUS, type SampleStatus } from "@/lib/samples";
 
@@ -45,6 +46,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       set.workingSince = now;
       if (p.sampleStatus === "requested") set.sampleStatus = "working";
       await logActivity(db, s, "sample.working", "started working on a sample", { project: p._id });
+      await notify(db, s, await watcherIds(db, s, p.workers || []), { type: "sample.working", title: `${s.name} is working on a sample`, body: (await projectLabel(db, p)).replace(/ project$/, " sample"), link: `/samples/${p._id}`, project: p._id });
     }
   }
   if (b.sampleStatus !== undefined && PICKABLE.includes(b.sampleStatus) && b.sampleStatus !== p.sampleStatus) {

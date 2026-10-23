@@ -3,6 +3,7 @@ import { connectDB, isId, notDeleted, oid } from "@/lib/db";
 import { bad, requireUser } from "@/lib/auth";
 import { getProject } from "@/lib/projects";
 import { logActivity } from "@/lib/activity";
+import { notify, projectLabel } from "@/lib/notify";
 import { cleanModule, STEP_KINDS, stepsFromTemplate, type StepKind } from "@/lib/workflow";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -44,6 +45,10 @@ export async function POST(req: Request, { params }: Ctx) {
   );
   if (!res.matchedCount) return bad("Project not found.", 404);
   await logActivity(db, s, "step.added", `added the step “${title}”`, { project: id });
+  if (step.assignees.length) {
+    const p = await db.collection("projects").findOne({ _id: oid(id) }, { projection: { brand: 1, theme: 1, legacyName: 1, productType: 1 } });
+    if (p) await notify(db, s, step.assignees, { type: "step.assigned", title: `${s.name} assigned you a step`, body: `“${title}” — ${await projectLabel(db, p)}`, link: `/project/${id}`, project: id });
+  }
   return NextResponse.json(await getProject(db, oid(id)));
 }
 

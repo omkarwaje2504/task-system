@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { connectDB, isId, notDeleted, oid } from "@/lib/db";
 import { bad, requireUser } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
+import { notify, projectLabel, watcherIds } from "@/lib/notify";
 import { getProject } from "@/lib/projects";
-import { cleanModule, languageProgress, uid, type LanguageRow, type ProjectStep, type StepStatus, type VoiceState } from "@/lib/workflow";
+import { cleanModule, languageProgress, stepPeople, uid, type LanguageRow, type ProjectStep, type StepStatus, type VoiceState } from "@/lib/workflow";
 
 type Ctx = { params: Promise<{ id: string; stepId: string }> };
 
@@ -82,6 +83,20 @@ export async function PATCH(req: Request, { params }: Ctx) {
     { _id: project._id, "steps.id": stepId },
     { $set: { "steps.$": next, updatedAt: new Date() }, ...(next.module ? { $addToSet: { modules: next.module } } : {}) },
   );
+
+  // Notifications: people newly put on the step; heads when someone starts or finishes it.
+  const before = new Set(stepPeople(step));
+  const added = (next.assignees || []).filter((a) => !before.has(a));
+  const moved = status && status !== step.status && (status === "doing" || status === "done") ? status : null;
+  if (added.length || moved) {
+    const where = await projectLabel(db, project);
+    const link = `/project/${project._id}`;
+    if (added.length) await notify(db, s, added, { type: "step.assigned", title: `${s.name} assigned you a step`, body: `“${next.title}” — ${where}`, link, project: project._id });
+    // Heads, the actor's team leads, and everyone else on this step.
+    const watchers = moved ? await watcherIds(db, s, next.assignees || []) : [];
+    if (moved === "doing") await notify(db, s, watchers, { type: "step.doing", title: `${s.name} is working on “${next.title}”`, body: where, link, project: project._id });
+    if (moved === "done") await notify(db, s, watchers, { type: "step.done", title: `${s.name} finished “${next.title}”`, body: where, link, project: project._id });
+  }
   return NextResponse.json(await getProject(db, project._id));
 }
 
