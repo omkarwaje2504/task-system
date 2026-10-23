@@ -12,7 +12,7 @@ const VOICE_LABEL = { male: "Male video", female: "Female video" } as const;
 function Toggle({ on, label, icon, onClick, compact = false }: { on: boolean; label: string; icon: React.ReactNode; onClick: () => void; compact?: boolean }) {
   return (
     <button type="button" onClick={onClick} title={label} aria-pressed={on}
-      className={`flex items-center justify-center gap-1 rounded-md border text-[11px] font-semibold transition-colors ${compact ? "h-7 w-full" : "flex-1 px-2 py-1"} ${
+      className={`flex items-center justify-center gap-1 rounded-md border text-[0.6875rem] font-semibold transition-colors ${compact ? "h-7 w-full" : "flex-1 px-2 py-1"} ${
         on ? "border-accent bg-accent text-[var(--accent-fg)]" : "border-line text-muted hover:border-accent hover:text-fg"
       }`}>
       {on ? <Check className="h-3 w-3" strokeWidth={3} /> : icon}
@@ -127,14 +127,14 @@ export default function LanguagesPanel({ step, onSave }: { step: ProjectStep; on
           return (
             <div key={r.id} className="rounded-lg border border-line p-2">
               <div className="mb-1.5 flex items-center gap-1.5">
-                <span className="flex-1 text-[13px] font-bold">{r.name}</span>
-                <span className={`text-[11px] font-bold ${p.done === p.total ? "text-accent" : "text-muted"}`}>{p.done}/{p.total}</span>
+                <span className="flex-1 text-[0.8125rem] font-bold">{r.name}</span>
+                <span className={`text-[0.6875rem] font-bold ${p.done === p.total ? "text-accent" : "text-muted"}`}>{p.done}/{p.total}</span>
                 <button className="icon-btn !h-6 !w-6 hover:!text-danger" onClick={() => removeLanguage(r)} aria-label={`Remove ${r.name}`}><X className="h-3.5 w-3.5" /></button>
               </div>
               <div className="space-y-1.5">
                 {voices.map((v) => (
                   <div key={v} className="grid grid-cols-[64px_1fr] items-center gap-1.5">
-                    <span className="text-[11px] font-semibold text-muted">{v === "male" ? "Male" : "Female"}</span>
+                    <span className="text-[0.6875rem] font-semibold text-muted">{v === "male" ? "Male" : "Female"}</span>
                     <div className="flex gap-1">
                       <Toggle on={r[v].text} label="Text" icon={<Type className="h-3 w-3" />} onClick={() => flip(r, v, "text")} />
                       <Toggle on={r[v].audio} label="Audio" icon={<Mic className="h-3 w-3" />} onClick={() => flip(r, v, "audio")} />

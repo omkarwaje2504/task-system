@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, Plus } from "lucide-react";
+import FloatingPanel from "./Floating";
 
 export type ComboOption = { value: string; label: string; hint?: string; icon?: ReactNode };
 
@@ -28,6 +29,7 @@ export default function Combobox({
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);
   const wrap = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
 
   const matches = useMemo(() => {
     const q = norm(value);
@@ -39,7 +41,8 @@ export default function Combobox({
   const exact = options.find((o) => norm(o.label) === norm(value));
 
   useEffect(() => {
-    const close = (e: MouseEvent) => wrap.current && !wrap.current.contains(e.target as Node) && setOpen(false);
+    // Suggestions render in <body> (FloatingPanel): clicks there are "inside" too.
+    const close = (e: MouseEvent) => !wrap.current?.contains(e.target as Node) && !panel.current?.contains(e.target as Node) && setOpen(false);
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, []);
@@ -73,25 +76,27 @@ export default function Combobox({
         </span>
       )}
       {open && matches.length > 0 && (
-        <ul className="glass animate-pop absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-2xl p-1">
-          {matches.map((o, i) => (
-            <li key={o.value}>
-              <button
-                type="button"
-                className={`flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[13px] ${i === hi ? "bg-panel2" : ""}`}
-                onMouseEnter={() => setHi(i)}
-                onMouseDown={(e) => { e.preventDefault(); pick(o); }}
-              >
-                {o.icon}
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{o.label}</span>
-                  {o.hint && <span className="block truncate text-[11px] text-muted">{o.hint}</span>}
-                </span>
-                {exact?.value === o.value && <Check className="h-4 w-4 text-accent" />}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <FloatingPanel anchor={wrap} panelRef={panel} estHeight={250}>
+          <ul className="max-h-60 min-h-0 overflow-y-auto">
+            {matches.map((o, i) => (
+              <li key={o.value}>
+                <button
+                  type="button"
+                  className={`flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-[0.8125rem] ${i === hi ? "bg-panel2" : ""}`}
+                  onMouseEnter={() => setHi(i)}
+                  onMouseDown={(e) => { e.preventDefault(); pick(o); }}
+                >
+                  {o.icon}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{o.label}</span>
+                    {o.hint && <span className="block truncate text-[0.6875rem] text-muted">{o.hint}</span>}
+                  </span>
+                  {exact?.value === o.value && <Check className="h-4 w-4 text-accent" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </FloatingPanel>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, FolderKanban, Images, Plus, Settings2, Trash, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Blocks, FolderKanban, Images, Plus, Settings2, Trash, X } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import TypeIcon, { TYPE_ICONS } from "@/components/ui/TypeIcon";
 import { EmptyState, Field, PageHeader, PageIcon, SearchInput, TableSkeleton } from "@/components/ui/bits";
@@ -25,6 +25,7 @@ function EditTypeModal({ type, onClose }: { type: ProductTypeDoc; onClose: () =>
   const [icon, setIcon] = useState(type.icon);
   const [special, setSpecial] = useState(type.special);
   const [assetTab, setAssetTab] = useState(type.assetTab);
+  const [modules, setModules] = useState(!!type.modules);
   const [slots, setSlots] = useState<string[]>(type.assetSlots?.length ? type.assetSlots : ["Cover", "Front", "Back"]);
   const [slotDraft, setSlotDraft] = useState("");
   const [steps, setSteps] = useState<StepTemplate[]>(type.steps || []);
@@ -41,7 +42,7 @@ function EditTypeModal({ type, onClose }: { type: ProductTypeDoc; onClose: () =>
   async function save() {
     setSaving(true);
     try {
-      await api(`/api/product-types/${type._id}`, { method: "PUT", body: { name, icon, special, assetTab, assetSlots: slots, steps } });
+      await api(`/api/product-types/${type._id}`, { method: "PUT", body: { name, icon, special, assetTab, modules, assetSlots: slots, steps } });
       toast.success("Product type saved. New projects will use this template.");
       refresh("/api/product-types");
       onClose();
@@ -71,13 +72,18 @@ function EditTypeModal({ type, onClose }: { type: ProductTypeDoc; onClose: () =>
       <div className="mb-3 grid gap-1.5 sm:grid-cols-2">
         <label className="flex items-center gap-2.5 rounded-lg border border-line px-2.5 py-2">
           <FolderKanban className="h-4 w-4 text-accent" />
-          <span className="flex-1"><span className="block text-[13px] font-semibold">Own Projects tab</span><span className="text-[11px] text-muted">Special type — not mixed into “Others”</span></span>
+          <span className="flex-1"><span className="block text-[0.8125rem] font-semibold">Own Projects tab</span><span className="text-[0.6875rem] text-muted">Special type — not mixed into “Others”</span></span>
           <Switch on={special} onChange={setSpecial} label="Own Projects tab" />
         </label>
         <label className="flex items-center gap-2.5 rounded-lg border border-line px-2.5 py-2">
           <Images className="h-4 w-4 text-accent" />
-          <span className="flex-1"><span className="block text-[13px] font-semibold">Asset tab</span><span className="text-[11px] text-muted">A design library under Assets</span></span>
+          <span className="flex-1"><span className="block text-[0.8125rem] font-semibold">Asset tab</span><span className="text-[0.6875rem] text-muted">A design library under Assets</span></span>
           <Switch on={assetTab} onChange={setAssetTab} label="Asset tab" />
+        </label>
+        <label className="flex items-center gap-2.5 rounded-lg border border-line px-2.5 py-2 sm:col-span-2">
+          <Blocks className="h-4 w-4 text-accent" />
+          <span className="flex-1"><span className="block text-[0.8125rem] font-semibold">Modules (IT projects)</span><span className="text-[0.6875rem] text-muted">Group a project&apos;s tasks into modules — pages, parts or sections of an app or website</span></span>
+          <Switch on={modules} onChange={setModules} label="Modules" />
         </label>
       </div>
 
@@ -95,10 +101,10 @@ function EditTypeModal({ type, onClose }: { type: ProductTypeDoc; onClose: () =>
 
       <div className="mb-1 flex items-center justify-between">
         <p className="label !mb-0">Project template — steps</p>
-        <span className="text-[11px] text-muted">Changes apply to new projects</span>
+        <span className="text-[0.6875rem] text-muted">Changes apply to new projects</span>
       </div>
       <div className="overflow-hidden rounded-lg border border-line">
-        <div className="hidden grid-cols-[20px_minmax(0,1fr)_150px_minmax(0,1fr)_84px] gap-1.5 border-b border-line bg-panel2/60 px-2 py-1.5 text-[11px] font-semibold text-muted uppercase sm:grid">
+        <div className="hidden grid-cols-[20px_minmax(0,1fr)_150px_minmax(0,1fr)_84px] gap-1.5 border-b border-line bg-panel2/60 px-2 py-1.5 text-[0.6875rem] font-semibold text-muted uppercase sm:grid">
           <span>#</span><span>Step</span><span>Kind</span><span>Tip for the team</span><span />
         </div>
         {steps.map((s, i) => (
@@ -129,11 +135,15 @@ export default function ProductTypesPage() {
   const [editing, setEditing] = useState<ProductTypeDoc | null>(null);
   const [q, setQ] = useState("");
 
-  async function quickToggle(t: ProductTypeDoc, field: "special" | "assetTab", value: boolean) {
+  async function quickToggle(t: ProductTypeDoc, field: "special" | "assetTab" | "modules", value: boolean) {
     try {
       await api(`/api/product-types/${t._id}`, { method: "PUT", body: { [field]: value } });
       await refresh("/api/product-types");
-      toast.success(field === "special" ? (value ? `${t.name} now has its own Projects tab.` : `${t.name} moved to “Others”.`) : (value ? `${t.name} designs tab added to Assets.` : `${t.name} removed from Assets.`));
+      toast.success(
+        field === "special" ? (value ? `${t.name} now has its own Projects tab.` : `${t.name} moved to “Others”.`)
+        : field === "modules" ? (value ? `${t.name} projects now group tasks into modules.` : `${t.name} projects show one plain step list.`)
+        : (value ? `${t.name} designs tab added to Assets.` : `${t.name} removed from Assets.`),
+      );
     } catch (e) {
       toastError(e);
     }
@@ -181,6 +191,7 @@ export default function ProductTypesPage() {
                 <th>Type</th>
                 <th className="!text-center">Projects tab</th>
                 <th className="!text-center">Asset tab</th>
+                <th className="!text-center">Modules</th>
                 <th className="hidden sm:table-cell">Template</th>
                 <th />
               </tr>
@@ -195,6 +206,7 @@ export default function ProductTypesPage() {
                   </td>
                   <td><span className="flex justify-center"><Switch on={t.special} onChange={(v) => quickToggle(t, "special", v)} label={`${t.name} projects tab`} /></span></td>
                   <td><span className="flex justify-center"><Switch on={t.assetTab} onChange={(v) => quickToggle(t, "assetTab", v)} label={`${t.name} asset tab`} /></span></td>
+                  <td><span className="flex justify-center"><Switch on={!!t.modules} onChange={(v) => quickToggle(t, "modules", v)} label={`${t.name} modules`} /></span></td>
                   <td className="hidden text-xs text-muted sm:table-cell">{t.steps.length ? `${t.steps.length} steps` : "Tasks only"}</td>
                   <td className="w-24 !px-1">
                     <div className="flex justify-end gap-0.5">

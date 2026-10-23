@@ -38,10 +38,12 @@ export default function NewProjectModal({ open, onClose, initialTypeSlug }: { op
   const [languages, setLanguages] = useState<string[]>([]);
   const [customLang, setCustomLang] = useState("");
   const [notes, setNotes] = useState("");
+  // Ask: start from the type's template steps, or with none (add tasks one by one).
+  const [useTemplate, setUseTemplate] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const type: ProductTypeDoc | null = types.find((t) => t._id === typeId) || initial;
-  const hasLanguages = type?.steps.some((s) => s.kind === "languages");
+  const hasLanguages = useTemplate && type?.steps.some((s) => s.kind === "languages");
   const special = types.filter((t) => t.special);
   const others = useMemo(() => types.filter((t) => !t.special && t.name.toLowerCase().includes(q.toLowerCase())), [types, q]);
 
@@ -70,9 +72,9 @@ export default function NewProjectModal({ open, onClose, initialTypeSlug }: { op
     setSaving(true);
     try {
       const p = await api<{ _id: string }>("/api/projects", {
-        body: { productType: type._id, theme, companyName: company, brandName: brand, deadline: deadline || null, languages, notes },
+        body: { productType: type._id, theme, companyName: company, brandName: brand, deadline: deadline || null, languages, notes, useTemplate },
       });
-      toast.success("Project created! Here are its steps.");
+      toast.success(useTemplate && type.steps.length ? "Project created! Here are its steps." : "Project created! Add its tasks one by one.");
       refresh("/api/projects", "/api/dashboard", "/api/brands", "/api/companies");
       onClose();
       router.push(`/project/${p._id}`);
@@ -103,8 +105,8 @@ export default function NewProjectModal({ open, onClose, initialTypeSlug }: { op
                 className={`group flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors hover:border-accent hover:bg-accent-soft ${type?._id === t._id ? "border-accent bg-accent-soft" : "border-line"}`}>
                 <TypeIcon icon={t.icon} size="md" />
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold">{t.name}</p>
-                  <p className="text-[11px] text-muted">{t.steps.length ? `${t.steps.length} guided steps` : "Tasks only"}</p>
+                  <p className="truncate text-[0.8125rem] font-semibold">{t.name}</p>
+                  <p className="text-[0.6875rem] text-muted">{t.steps.length ? `${t.steps.length} guided steps` : "Tasks only"}</p>
                 </div>
               </button>
             ))}
@@ -133,8 +135,8 @@ export default function NewProjectModal({ open, onClose, initialTypeSlug }: { op
           <div className="mb-3 flex items-center gap-2.5 rounded-lg border border-line px-2.5 py-2">
             <TypeIcon icon={type.icon} />
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] text-muted">Product type</p>
-              <p className="text-[13px] font-bold">{type.name}</p>
+              <p className="text-[0.6875rem] text-muted">Product type</p>
+              <p className="text-[0.8125rem] font-bold">{type.name}</p>
             </div>
             <button className="btn-ghost btn-sm" onClick={() => setStep(1)}>Change</button>
           </div>
@@ -187,11 +189,17 @@ export default function NewProjectModal({ open, onClose, initialTypeSlug }: { op
           </Field>
 
           {type.steps.length > 0 ? (
-            <div className="overflow-hidden rounded-lg border border-line">
-              <p className="flex items-center gap-1.5 border-b border-line bg-panel2/60 px-2.5 py-1.5 text-xs font-bold"><ListChecks className="h-3.5 w-3.5 text-accent" />This project will follow these steps</p>
-              <ol>
+            <div className={`overflow-hidden rounded-lg border ${useTemplate ? "border-accent/50" : "border-line"}`}>
+              <label className="flex cursor-pointer items-start gap-2 border-b border-line bg-panel2/60 px-2.5 py-2">
+                <input type="checkbox" className="mt-0.5 accent-accent" checked={useTemplate} onChange={(e) => setUseTemplate(e.target.checked)} />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5 text-xs font-bold"><ListChecks className="h-3.5 w-3.5 text-accent" />Use the {type.name} template ({type.steps.length} step{type.steps.length === 1 ? "" : "s"})</span>
+                  <span className="block text-[0.6875rem] text-muted">{useTemplate ? "The project starts with these steps." : "Start empty — you'll add the tasks yourself, one by one."}</span>
+                </span>
+              </label>
+              <ol className={useTemplate ? "" : "opacity-40"}>
                 {type.steps.map((s, i) => (
-                  <li key={s.id} className="flex items-center gap-2 border-b border-line/70 px-2.5 py-1.5 text-[13px] last:border-0">
+                  <li key={s.id} className="flex items-center gap-2 border-b border-line/70 px-2.5 py-1.5 text-[0.8125rem] last:border-0">
                     <span className="w-4 shrink-0 text-xs font-bold text-muted">{i + 1}</span>
                     <span className="flex-1">{s.title}</span>
                     {s.kind !== "check" && <span className="chip bg-panel2 text-muted">{STEP_KINDS[s.kind].label}</span>}

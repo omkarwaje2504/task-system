@@ -110,12 +110,12 @@ export default function PrintersPage() {
             {sorted.map((p) => (
               <div key={p._id} className="border-b border-line/70 px-3 py-2 last:border-0">
                 <div className="flex items-center gap-2">
-                  <p className="min-w-0 flex-1 truncate text-[13px] font-semibold">{p.name}</p>
+                  <p className="min-w-0 flex-1 truncate text-[0.8125rem] font-semibold">{p.name}</p>
                   <a href={`mailto:${p.email_id}`} className="icon-btn !h-7 !w-7" aria-label={`Email ${p.name}`}><Mail className="h-3.5 w-3.5" /></a>
                   <button className="icon-btn !h-7 !w-7" onClick={() => openForm(p)} aria-label={`Edit ${p.name}`}><Pencil className="h-3.5 w-3.5" /></button>
                 </div>
-                <p className="truncate text-[11px] text-muted">{[p.email_id, p.printerType, p.pageColor, p.fileType].filter(Boolean).join(" · ")}</p>
-                {(p.fileSize || p.pageType) && <p className="truncate text-[11px] text-muted">{[p.fileSize, p.pageType].filter(Boolean).join(" · ")}</p>}
+                <p className="truncate text-[0.6875rem] text-muted">{[p.email_id, p.printerType, p.pageColor, p.fileType].filter(Boolean).join(" · ")}</p>
+                {(p.fileSize || p.pageType) && <p className="truncate text-[0.6875rem] text-muted">{[p.fileSize, p.pageType].filter(Boolean).join(" · ")}</p>}
               </div>
             ))}
           </div>

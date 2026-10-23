@@ -30,9 +30,9 @@ Data goes in the `new-system` database (override with `MONGODB_DB`).
   - `quantity`: RxPad-style daily added/completed/declined counts (`progress` collection)
   - `printer`: pick a printer from Printer Types
 - **Company / brand** are typed freely and matched on a normalized key (`"Dr. Reddy's"` = `"dr reddys"`), so autosuggest + server-side matching avoid duplicates.
-- **Tasks** are simple to-dos with assignees, optionally linked to a project.
+- **Steps are the tasks**: a project's steps come from its type's template, and people add more one by one (people, due date, details). "My steps" lists what's assigned to you; "I'm doing" marks a project's latest open step as in progress. Old tasks were merged in by `scripts/merge-tasks-into-steps.mjs`.
 - **Auth**: JWT in an httpOnly `ns_token` cookie. Only admins create accounts. Every API call re-checks that the user is still active and what their role is.
-- **Credentials** use the same AES-256-GCM scheme and secret as error-tracking-api. Revealing a password requires re-entering your own login password.
+- **Credentials** use the same AES-256-GCM scheme and secret as error-tracking-api. Passwords are decrypted on the server and shown to signed-in users straight in the list (click to copy).
 - **Media tools** run fully in the browser (Mediabunny, pdf-lib, pdf.js).
 
 Pages live in `app/(app)/*` (client components using SWR), and APIs in `app/api/*`. Shared workflow logic is in `lib/workflow.ts`.

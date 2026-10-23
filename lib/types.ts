@@ -13,7 +13,7 @@ export type User = {
   lastLoginAt?: string;
 };
 
-export type TypeRef = { _id: string; name: string; slug: string; icon: string; special?: boolean };
+export type TypeRef = { _id: string; name: string; slug: string; icon: string; special?: boolean; /** Steps grouped into modules (IT projects). */ modules?: boolean };
 
 export type ProductTypeDoc = TypeRef & {
   special: boolean;
@@ -21,6 +21,7 @@ export type ProductTypeDoc = TypeRef & {
   assetSlots: string[];
   steps: StepTemplate[];
   order: number;
+  modules?: boolean;
 };
 
 export type Project = {
@@ -29,31 +30,37 @@ export type Project = {
   legacyName?: string;
   deadline: string | null;
   status: "active" | "completed" | "on-hold";
+  /** ★ Starred: stays at the top of project lists. */
+  priority?: boolean;
+  /** Samples (lib/samples.ts): not a project until converted. */
+  sample?: boolean;
+  sampleStatus?: import("./samples").SampleStatus;
+  workers?: string[];
+  workingSince?: string;
+  convertedAt?: string;
+  requestedAt?: string;
   notes?: string;
   steps: ProjectStep[];
+  /** IT projects: module names in display order (tasks point at them by name). */
+  modules?: string[];
   type?: TypeRef;
   brand?: { _id: string; name: string };
   company?: { _id: string; name: string };
-  openTasks?: number;
+  fileCount?: number;
+  cover?: { _id: string; name: string; title?: string; thumb: string; kind: string; final: boolean };
   createdBy?: string;
   createdByName?: string;
   createdAt: string;
   completedAt?: string | null;
 };
 
-export type Task = {
-  _id: string;
-  title: string;
-  status: "open" | "done";
-  assignees: string[];
-  dueDate: string | null;
-  project?: { _id: string; theme?: string } | string | null;
-  brandName?: string;
-  typeName?: string;
-  typeIcon?: string;
-  createdByName?: string;
-  createdAt: string;
-  doneAt?: string | null;
+/** One step with its project, from /api/steps and the dashboard ("My steps"). */
+export type StepRow = {
+  index?: number;
+  step: ProjectStep;
+  project: { _id: string; theme: string; legacyName?: string; status: Project["status"]; deadline: string | null };
+  brand?: { name?: string };
+  type?: TypeRef;
 };
 
 export type Brand = { _id: string; name: string; company?: { _id: string; name: string } };

@@ -26,6 +26,8 @@ export async function PUT(req: Request, { params }: Ctx) {
   if (body.icon !== undefined) set.icon = String(body.icon);
   if (body.special !== undefined) set.special = !!body.special;
   if (body.assetTab !== undefined) set.assetTab = !!body.assetTab;
+  // IT projects (apps, websites): steps are grouped into modules — pages / parts / sections.
+  if (body.modules !== undefined) set.modules = !!body.modules;
   if (body.order !== undefined) set.order = Number(body.order) || 0;
   if (Array.isArray(body.assetSlots)) {
     set.assetSlots = body.assetSlots.map((x: unknown) => String(x).trim()).filter(Boolean).slice(0, 8);

@@ -7,19 +7,76 @@ import TypeIcon from "@/components/ui/TypeIcon";
 import { Avatar, DeadlineBadge, EmptyState, ProgressBar, Skeleton } from "@/components/ui/bits";
 import NewProjectModal from "@/components/projects/NewProjectModal";
 import { projectTitle } from "@/components/projects/ProjectCard";
-import TaskRow from "@/components/tasks/TaskRow";
+import StepRowItem from "@/components/projects/StepRowItem";
 import { greeting, timeAgo, useApi, useHydrated, useMe, useTypes } from "@/lib/client";
-import { projectProgress, type ProjectStep } from "@/lib/workflow";
-import type { Activity, Project, Task, TypeRef } from "@/lib/types";
+import { projectProgress } from "@/lib/workflow";
+import type { Activity, Project, StepRow } from "@/lib/types";
 
 type Dash = {
-  stats: { active: number; dueSoon: number; overdue: number; completed30: number; myOpenTasks: number };
-  myTasks: (Task & { theme?: string })[];
-  mySteps: { _id: string; theme: string; deadline: string | null; step: ProjectStep; type: TypeRef; brand?: { name: string } }[];
+  stats: { active: number; dueSoon: number; overdue: number; completed30: number; myOpenSteps: number };
+  mySteps: StepRow[];
+  team: TeamMember[];
   upcoming: Project[];
   byType: { _id: string; count: number; name: string; slug: string; icon: string; special: boolean }[];
   activity: Activity[];
 };
+
+type WorkItem = {
+  step: { id: string; title: string; status: string; dueDate: string | null; note?: string; updatedAt?: string; module?: string };
+  project: { _id: string; theme: string; legacyName?: string };
+  brand?: string;
+  typeIcon?: string;
+  typeName?: string;
+};
+type TeamMember = { id: string; name: string; team: string; open: number; overdue: number; doing: WorkItem[] };
+
+const workProject = (w: WorkItem) => [w.brand, w.project.theme].filter(Boolean).join(" — ") || w.project.legacyName || w.typeName || "Project";
+
+function WorkLine({ w }: { w: WorkItem }) {
+  return (
+    <Link href={`/project/${w.project._id}`} className="block rounded-lg px-1.5 py-1 hover:bg-panel2/60">
+      <span className="flex min-w-0 items-center gap-1.5 text-xs">
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+        <span className="truncate font-semibold">{w.step.title}</span>
+        {w.step.dueDate && <span className="ml-auto shrink-0"><DeadlineBadge date={w.step.dueDate} /></span>}
+      </span>
+      <span className="block truncate pl-3 text-[0.6875rem] text-muted">
+        {workProject(w)}{w.step.module ? ` › ${w.step.module}` : ""}{w.step.updatedAt ? ` · ${timeAgo(w.step.updatedAt)}` : ""}
+      </span>
+      {w.step.note && <span className="line-clamp-2 pl-3 text-[0.6875rem] text-fg/75">{w.step.note}</span>}
+    </Link>
+  );
+}
+
+/** Who's working on what: only steps people marked with "I'm doing", newest first. */
+function TeamPanel({ team }: { team: TeamMember[] }) {
+  return (
+    <Panel title="Who's working on what" action={<span className="text-[0.6875rem] text-muted">{team.length ? `${team.length} working now` : "From the “I'm doing” button"}</span>}>
+      {team.length === 0 ? (
+        <Empty>Nobody is on anything right now. Press <b>I&apos;m doing</b> on a project to show what you&apos;re working on.</Empty>
+      ) : (
+        <div className="grid gap-1.5 p-0.5 md:grid-cols-2">
+          {team.map((m) => (
+            <div key={m.id} className="rounded-xl border border-line/70 p-2">
+              <div className="mb-1 flex items-center gap-2">
+                <Avatar name={m.name} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[0.8125rem] font-bold">{m.name}</span>
+                  {m.team && <span className="block truncate text-[0.625rem] text-muted capitalize">{m.team}</span>}
+                </span>
+                <span className="flex shrink-0 items-center gap-1">
+                  <span className="chip bg-panel2 text-muted">{m.open} open</span>
+                  {m.overdue > 0 && <span className="chip bg-danger/10 text-danger">{m.overdue} late</span>}
+                </span>
+              </div>
+              {m.doing.map((w) => <WorkLine key={`${w.project._id}-${w.step.id}`} w={w} />)}
+            </div>
+          ))}
+        </div>
+      )}
+    </Panel>
+  );
+}
 
 function Stat({ label, value, icon: Icon, danger, href }: { label: string; value?: number; icon: LucideIcon; danger?: boolean; href: string }) {
   const alert = danger && !!value;
@@ -36,7 +93,7 @@ function Panel({ title, action, children, flush = false }: { title: string; acti
   return (
     <section className="card overflow-hidden !p-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 border-b border-line px-3 py-2">
-        <h2 className="text-[13px] font-extrabold">{title}</h2>
+        <h2 className="text-[0.8125rem] font-extrabold">{title}</h2>
         {action}
       </div>
       <div className={flush ? "" : "p-1.5"}>{children}</div>
@@ -62,12 +119,12 @@ export default function Dashboard() {
           <h1 className="text-lg leading-tight font-extrabold tracking-tight sm:text-xl">{hydrated ? greeting() : "Hello"}, {me?.name.split(" ")[0] || "there"} 👋</h1>
           <p className="text-xs text-muted">
             {hydrated && new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
-            {data && ` · ${data.stats.myOpenTasks} open task${data.stats.myOpenTasks === 1 ? "" : "s"}, ${data.mySteps.length} step${data.mySteps.length === 1 ? "" : "s"} waiting on you`}
+            {data && ` · ${data.stats.myOpenSteps} step${data.stats.myOpenSteps === 1 ? "" : "s"} waiting on you`}
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
           <button onClick={() => setCreating(true)} className="btn-primary"><Plus className="h-3.5 w-3.5" />New project</button>
-          <Link href="/tasks" className="btn-ghost"><SquareCheckBig className="h-3.5 w-3.5" />My tasks</Link>
+          <Link href="/tasks" className="btn-ghost"><SquareCheckBig className="h-3.5 w-3.5" />My steps</Link>
           {firstAssetType && <Link href={`/assets/${firstAssetType.slug}`} className="btn-ghost"><ImagePlus className="h-3.5 w-3.5" />Designs</Link>}
         </div>
       </div>
@@ -84,30 +141,14 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <div className="space-y-3">
-            <Panel title="Your next steps" action={<span className="text-[11px] text-muted">Project steps assigned to you</span>} flush>
-              {data.mySteps.length === 0 ? <Empty>No project steps assigned to you right now.</Empty> : (
-                <table className="tbl">
-                  <tbody>
-                    {data.mySteps.map((s) => (
-                      <tr key={`${s._id}-${s.step.id}`}>
-                        <td className="w-full max-w-0">
-                          <Link href={`/project/${s._id}`} className="flex min-w-0 items-center gap-2 hover:text-accent">
-                            <TypeIcon icon={s.type?.icon} size="sm" />
-                            <span className="min-w-0">
-                              <span className="block truncate font-semibold">{s.step.title}</span>
-                              <span className="block truncate text-[11px] text-muted">{[s.brand?.name, s.theme].filter(Boolean).join(" — ") || s.type?.name}</span>
-                            </span>
-                          </Link>
-                        </td>
-                        <td className="text-right">{s.deadline && <DeadlineBadge date={s.deadline} />}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+            <TeamPanel team={data.team} />
+            <Panel title="Your next steps" action={<Link href="/tasks" className="text-[0.6875rem] font-bold text-accent hover:underline">See all {data.stats.myOpenSteps}</Link>}>
+              {data.mySteps.length === 0
+                ? <Empty>Nothing assigned to you right now. Enjoy! ☕</Empty>
+                : data.mySteps.map((r) => <StepRowItem key={`${r.project._id}-${r.step.id}`} row={r} onChange={() => mutate()} />)}
             </Panel>
 
-            <Panel title="Coming up" action={<span className="text-[11px] text-muted">Nearest deadlines</span>} flush>
+            <Panel title="Coming up" action={<span className="text-[0.6875rem] text-muted">Nearest deadlines</span>} flush>
               {data.upcoming.length === 0 ? <Empty>No deadlines set on active projects.</Empty> : (
                 <div className="overflow-x-auto">
                   <table className="tbl">
@@ -123,7 +164,7 @@ export default function Dashboard() {
                               </Link>
                             </td>
                             <td className="hidden max-w-48 truncate text-muted sm:table-cell">{prog.current?.title || "All steps done"}</td>
-                            <td className="hidden md:table-cell">{prog.total > 0 && <div className="flex items-center gap-1.5"><ProgressBar value={prog.pct} /><span className="text-[11px] text-muted">{prog.done}/{prog.total}</span></div>}</td>
+                            <td className="hidden md:table-cell">{prog.total > 0 && <div className="flex items-center gap-1.5"><ProgressBar value={prog.pct} /><span className="text-[0.6875rem] text-muted">{prog.done}/{prog.total}</span></div>}</td>
                             <td className="text-right"><DeadlineBadge date={p.deadline} /></td>
                           </tr>
                         );
@@ -134,11 +175,6 @@ export default function Dashboard() {
               )}
             </Panel>
 
-            <Panel title="My tasks" action={<Link href="/tasks" className="text-[11px] font-bold text-accent hover:underline">See all</Link>}>
-              {data.myTasks.length === 0 ? <Empty>No open tasks. Enjoy! ☕</Empty> : data.myTasks.map((t) => (
-                <TaskRow key={t._id} task={{ ...t, assignees: t.assignees || [], project: t.project ? { _id: String(t.project), theme: t.theme } : null }} onChange={() => mutate()} />
-              ))}
-            </Panel>
           </div>
 
           <div className="space-y-3">

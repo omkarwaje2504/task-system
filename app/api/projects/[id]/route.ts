@@ -4,6 +4,7 @@ import { bad, requireUser } from "@/lib/auth";
 import { resolveBrand, resolveCompany } from "@/lib/clients";
 import { logActivity } from "@/lib/activity";
 import { getProject } from "@/lib/projects";
+import { stepsFromTemplate, type StepTemplate } from "@/lib/workflow";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -31,6 +32,23 @@ export async function PUT(req: Request, { params }: Ctx) {
   if (b.theme !== undefined) set.theme = String(b.theme).trim();
   if (b.notes !== undefined) set.notes = String(b.notes).trim();
   if (b.deadline !== undefined) set.deadline = b.deadline || null;
+  // ★ Priority: shared for the whole team; starred projects stay at the top of lists.
+  if (typeof b.priority === "boolean" && b.priority !== !!existing.priority) {
+    set.priority = b.priority;
+    if (b.priority) await logActivity(db, s, "project.priority", "marked a project as priority", { project: existing._id });
+  }
+  // Changing the type keeps the steps; optionally adds the new type's template steps it doesn't have yet.
+  if (b.productType !== undefined && String(b.productType) !== String(existing.productType)) {
+    const type = isId(b.productType) ? await db.collection("productTypes").findOne({ _id: oid(b.productType), ...notDeleted }) : null;
+    if (!type) return bad("That product type no longer exists.");
+    set.productType = type._id;
+    if (b.addTemplateSteps) {
+      const have = new Set((existing.steps || []).map((st: { title: string }) => st.title.trim().toLowerCase()));
+      const extra = stepsFromTemplate(((type.steps || []) as StepTemplate[]).filter((t) => !have.has(t.title.trim().toLowerCase())));
+      set.steps = [...(existing.steps || []), ...extra];
+    }
+    await logActivity(db, s, "project.type", `changed the type to ${type.name}`, { project: existing._id });
+  }
   if (b.companyName !== undefined || b.brandName !== undefined) {
     const companyId = await resolveCompany(db, b.companyName);
     const { brand, company } = await resolveBrand(db, b.brandName, companyId);

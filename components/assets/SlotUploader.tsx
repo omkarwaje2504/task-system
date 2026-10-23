@@ -59,7 +59,7 @@ export default function SlotUploader({ slot, file, onChange, folder }: { slot: s
           <div className="flex flex-col items-center gap-1.5 px-2 text-center text-muted">
             <ImagePlus className="h-5 w-5" />
             <span className="text-xs font-semibold">Tap or drop</span>
-            <span className="flex items-center gap-1 text-[10px]"><FileVideoCamera className="h-3 w-3" />image or video</span>
+            <span className="flex items-center gap-1 text-[0.625rem]"><FileVideoCamera className="h-3 w-3" />image or video</span>
           </div>
         )}
         <input ref={input} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => { handle(e.target.files?.[0]); e.target.value = ""; }} />

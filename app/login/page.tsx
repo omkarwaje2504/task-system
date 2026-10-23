@@ -51,7 +51,7 @@ export default function LoginPage() {
       {/* Brand panel */}
       <div className="relative m-3 hidden overflow-hidden rounded-[28px] border border-white/10 bg-[#0b0b1a] lg:block">        <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,.6) 1px, transparent 0)", backgroundSize: "24px 24px" }} />
         {FLOATING.map(({ icon: Icon, label, pos, delay }) => (
-          <div key={label} className={`absolute ${pos} flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 py-1.5 pr-3 pl-1.5 text-[13px] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_12px_30px_-10px_rgba(0,0,0,0.6)] backdrop-blur-xl`}
+          <div key={label} className={`absolute ${pos} flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 py-1.5 pr-3 pl-1.5 text-[0.8125rem] font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_12px_30px_-10px_rgba(0,0,0,0.6)] backdrop-blur-xl`}
             style={{ animation: `float 6s ease-in-out ${delay} infinite` }}>
             <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#5e5ce6] to-[#0a84ff] text-white"><Icon className="h-4 w-4" /></span>
             {label}
@@ -75,7 +75,7 @@ export default function LoginPage() {
             <span className="text-base font-extrabold tracking-tight">Studio Desk</span>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight">Welcome back 👋</h1>
-          <p className="mt-1 text-[13px] text-muted">Log in with the email and password your admin gave you.</p>
+          <p className="mt-1 text-[0.8125rem] text-muted">Log in with the email and password your admin gave you.</p>
 
           <form onSubmit={submit} className="mt-6 space-y-3">
             <div>

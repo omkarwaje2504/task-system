@@ -3,7 +3,7 @@ import { connectDB, isId, notDeleted, oid } from "@/lib/db";
 import { bad, requireUser } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { getProject } from "@/lib/projects";
-import { languageProgress, uid, type LanguageRow, type ProjectStep, type StepStatus, type VoiceState } from "@/lib/workflow";
+import { cleanModule, languageProgress, uid, type LanguageRow, type ProjectStep, type StepStatus, type VoiceState } from "@/lib/workflow";
 
 type Ctx = { params: Promise<{ id: string; stepId: string }> };
 
@@ -35,9 +35,16 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   const next: ProjectStep = { ...step, data: { ...step.data } };
   if (b.title !== undefined && String(b.title).trim()) next.title = String(b.title).trim();
-  if (b.note !== undefined) next.note = String(b.note);
+  if (b.note !== undefined) next.note = String(b.note).slice(0, 4000);
   if (b.link !== undefined) next.link = String(b.link).trim();
-  if (b.assignee !== undefined) next.assignee = isId(b.assignee) ? b.assignee : null;
+  if (b.assignees !== undefined) next.assignees = Array.isArray(b.assignees) ? [...new Set<string>(b.assignees.filter(isId))] : [];
+  if (b.dueDate !== undefined) next.dueDate = /^\d{4}-\d{2}-\d{2}$/.test(b.dueDate || "") ? b.dueDate : null;
+  if (b.module !== undefined) {
+    const m = cleanModule(b.module);
+    if (m) next.module = m;
+    else delete next.module;
+  }
+  next.updatedAt = new Date().toISOString();
 
   if (b.data) {
     if (step.kind === "languages") {
@@ -73,7 +80,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   await db.collection("projects").updateOne(
     { _id: project._id, "steps.id": stepId },
-    { $set: { "steps.$": next, updatedAt: new Date() } },
+    { $set: { "steps.$": next, updatedAt: new Date() }, ...(next.module ? { $addToSet: { modules: next.module } } : {}) },
   );
   return NextResponse.json(await getProject(db, project._id));
 }

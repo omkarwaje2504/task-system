@@ -164,8 +164,8 @@ export default function UsersPage() {
               <button key={u._id} onClick={() => setEditing(u)} className={`flex w-full items-center gap-2.5 border-b border-line/70 px-3 py-2 text-left last:border-0 ${u.active === false ? "opacity-55" : ""}`}>
                 <Avatar name={u.name} size="md" />
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1 truncate text-[13px] font-semibold">{u.name}{u.role === "admin" && <ShieldCheck className="h-3.5 w-3.5 text-accent" />}</span>
-                  <span className="block truncate text-[11px] text-muted">{[u.email, u.team].filter(Boolean).join(" · ")}</span>
+                  <span className="flex items-center gap-1 truncate text-[0.8125rem] font-semibold">{u.name}{u.role === "admin" && <ShieldCheck className="h-3.5 w-3.5 text-accent" />}</span>
+                  <span className="block truncate text-[0.6875rem] text-muted">{[u.email, u.team].filter(Boolean).join(" · ")}</span>
                 </span>
                 {u.active === false && <span className="chip bg-danger/10 text-danger">Off</span>}
               </button>

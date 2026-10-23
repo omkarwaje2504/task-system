@@ -1,22 +1,32 @@
 import { NextResponse } from "next/server";
 import { connectDB, notDeleted, oid } from "@/lib/db";
 import { bad, requireUser } from "@/lib/auth";
-import { encrypt } from "@/lib/crypto";
+import { decrypt, encrypt } from "@/lib/crypto";
 
-// The encrypted password blob never leaves the server in list responses —
-// only /reveal returns it, after the viewer re-enters their own password.
+// Passwords are shown straight in the list (decrypted here for signed-in
+// users); the encrypted blob itself never leaves the server.
 const LIST_FIELDS = {
   service: 1, name: 1, username: 1, notes: 1, createdBy: 1, createdByName: 1,
-  createdAt: 1, updatedAt: 1, lastAccessedByName: 1, lastAccessedAt: 1,
+  createdAt: 1, updatedAt: 1, encryptedPassword: 1,
   billingStatus: 1, billingAmount: 1, nextPaymentDate: 1, cardLast4: 1,
 };
+
+function withPassword({ encryptedPassword, ...c }: Record<string, unknown>) {
+  let password: string | null = null;
+  try {
+    password = encryptedPassword ? decrypt(encryptedPassword as Parameters<typeof decrypt>[0]) : null;
+  } catch {
+    password = null; // CREDENTIALS_SECRET changed — the page says it can't be read
+  }
+  return { ...c, password };
+}
 
 export async function GET() {
   const s = await requireUser();
   if (s instanceof NextResponse) return s;
   const db = await connectDB();
-  const creds = await db.collection("credentials").find(notDeleted, { projection: LIST_FIELDS }).sort({ createdAt: -1 }).toArray();
-  return NextResponse.json(creds);
+  const creds = await db.collection("credentials").find(notDeleted, { projection: LIST_FIELDS }).sort({ service: 1, name: 1 }).toArray();
+  return NextResponse.json(creds.map(withPassword));
 }
 
 export async function POST(req: Request) {

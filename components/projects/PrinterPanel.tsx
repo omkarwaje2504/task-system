@@ -31,10 +31,10 @@ export default function PrinterPanel({ step, onSave }: { step: ProjectStep; onSa
       {!printers.length && <p className="help">No printers yet. <Link href="/printers" className="text-accent underline">Add one in Printer Types</Link>.</p>}
       {chosen && (
         <div className="animate-pop mt-2 rounded-lg border border-line p-2.5">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px] sm:grid-cols-5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[0.8125rem] sm:grid-cols-5">
             {SPECS.map(([k, label]) => chosen[k] && (
               <div key={k}>
-                <p className="text-[10px] font-semibold tracking-wide text-muted uppercase">{label}</p>
+                <p className="text-[0.625rem] font-semibold tracking-wide text-muted uppercase">{label}</p>
                 <p className="font-semibold">{chosen[k]}</p>
               </div>
             ))}

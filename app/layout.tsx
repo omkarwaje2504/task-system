@@ -3,6 +3,7 @@ import { Inter, Geist_Mono } from "next/font/google";
 import ToastHost from "@/components/ui/ToastHost";
 import ConfirmHost from "@/components/ui/ConfirmHost";
 import TapGlow from "@/components/ui/TapGlow";
+import { APPEARANCE_KEY, applyAppearance } from "@/lib/appearance";
 import "./globals.css";
 
 // SF Pro on Apple devices; Inter (its closest open match) everywhere else.
@@ -22,8 +23,10 @@ export const viewport: Viewport = {
   ],
 };
 
-// Dark by default; drops it before first paint if light was picked — no flash.
-const themeScript = `try{if(localStorage.getItem('theme')==='light')document.documentElement.classList.remove('dark')}catch(e){}`;
+// Dark by default; drops it before first paint if light was picked, and
+// applies the saved appearance settings (a local copy of the account's) — no flash.
+const themeScript = `try{if(localStorage.getItem('theme')==='light')document.documentElement.classList.remove('dark')}catch(e){}
+try{(${applyAppearance.toString()})(JSON.parse(localStorage.getItem('${APPEARANCE_KEY}')||'null'))}catch(e){}`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

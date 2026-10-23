@@ -24,3 +24,6 @@ export function slugify(s: string) {
 }
 
 export const notDeleted = { deleted: { $ne: true } };
+
+/** Samples (client asked for a sample — not a project yet) live in `projects` but stay out of project lists and stats. */
+export const notSample = { sample: { $ne: true } };

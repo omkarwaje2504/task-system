@@ -103,12 +103,12 @@ export function AssetViewer({ asset, onClose, onEdit, onDeleted }: { asset: Asse
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={f.url} alt={f.slot} className="h-full w-full object-cover" />
               )}
-              <span className="absolute inset-x-0 bottom-0 bg-black/60 text-[9px] font-bold text-white">{f.slot}</span>
+              <span className="absolute inset-x-0 bottom-0 bg-black/60 text-[0.5625rem] font-bold text-white">{f.slot}</span>
             </button>
           ))}
         </div>
       )}
-      {asset.description && <p className="mt-3 text-[13px] whitespace-pre-wrap">{asset.description}</p>}
+      {asset.description && <p className="mt-3 text-[0.8125rem] whitespace-pre-wrap">{asset.description}</p>}
       {asset.tags.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{asset.tags.map((t) => <span key={t} className="chip bg-panel2 text-muted">#{t}</span>)}</div>}
     </Modal>
   );

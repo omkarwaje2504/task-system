@@ -22,15 +22,35 @@ export type StepData = {
   printerName?: string;
 };
 
+/**
+ * A unit of work in a project. Steps and tasks are the same thing: the
+ * product type's template seeds the first ones, and people add more one by
+ * one (tasks imported from the old tracker became steps too).
+ */
 export type ProjectStep = StepTemplate & {
   status: StepStatus;
-  assignee: string | null;
+  /** User ids. */
+  assignees: string[];
+  dueDate: string | null;
+  /** Details / latest update. */
   note: string;
   link: string;
   doneAt: string | null;
   doneByName: string | null;
   data: StepData;
+  createdByName?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  /** IT projects: the module (page / part / section) this task belongs to. Empty = General. */
+  module?: string;
 };
+
+export const cleanModule = (v: unknown) => String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
+
+/** A step's people (older steps stored a single `assignee`). */
+export function stepPeople(step: Pick<ProjectStep, "assignees"> & { assignee?: string | null }): string[] {
+  return step.assignees ?? (step.assignee ? [step.assignee] : []);
+}
 
 export const STEP_KINDS: Record<StepKind, { label: string; help: string }> = {
   check: { label: "Simple step", help: "Someone does it, then ticks it as done." },
@@ -72,7 +92,7 @@ export function stepsFromTemplate(tpl: StepTemplate[], opts: { languages?: strin
     if (t.kind === "printer") data.printer = null;
     return {
       id: uid(), title: t.title, hint: t.hint || "", kind: t.kind,
-      status: "todo", assignee: null, note: "", link: "",
+      status: "todo", assignees: [], dueDate: null, note: "", link: "",
       doneAt: null, doneByName: null, data,
     };
   });
@@ -91,6 +111,58 @@ export function languageProgress(data: StepData) {
     }
   }
   return { done, total };
+}
+
+/** Finished videos (text + audio both ticked) out of language × voice. */
+export function videoProgress(data: StepData) {
+  const voices: ("male" | "female")[] = data.voices?.length ? data.voices : ["male", "female"];
+  let total = 0;
+  let done = 0;
+  for (const l of data.languages || []) {
+    for (const v of voices) {
+      total++;
+      if (l[v].text && l[v].audio) done++;
+    }
+  }
+  return { done, total };
+}
+
+export type CountSummary =
+  | { kind: "quantity"; added: number; completed: number; declined: number; pending: number; target: number | null; unit: string }
+  | { kind: "videos"; done: number; total: number; pending: number };
+
+/** The headline number for a project list: daily-count totals or finished videos. */
+export function countSummary(steps: ProjectStep[] = []): CountSummary | null {
+  const q = steps.find((s) => s.kind === "quantity");
+  if (q?.data?.totals) {
+    const t = q.data.totals;
+    // Same rule as the step's own panel: added but not yet completed or declined.
+    return { kind: "quantity", ...t, pending: Math.max(0, t.added - t.completed - t.declined), target: q.data.target || null, unit: q.data.unit || "pcs" };
+  }
+  const l = steps.find((s) => s.kind === "languages");
+  if (l?.data?.languages?.length) {
+    const v = videoProgress(l.data);
+    // A step ticked done counts as all videos finished (e.g. imported projects).
+    const done = l.status === "done" ? v.total : v.done;
+    return { kind: "videos", total: v.total, done, pending: v.total - done };
+  }
+  return null;
+}
+
+/**
+ * The step a project is "on" for lists, the hover card and "I'm doing": the
+ * most recently touched step in progress; else the latest-added / last-updated
+ * open step; else (untouched template steps) the first open one.
+ */
+export function workingStep(steps: ProjectStep[] = []): ProjectStep | null {
+  const open = steps.filter((s) => s.status !== "done");
+  if (!open.length) return null;
+  const touched = (s: ProjectStep) => s.updatedAt || s.createdAt || "";
+  const latest = (list: ProjectStep[]) => list.reduce((a, b) => (touched(b) > touched(a) ? b : a));
+  const doing = open.filter((s) => s.status === "doing");
+  if (doing.length) return latest(doing);
+  const dated = open.filter(touched);
+  return dated.length ? latest(dated) : open[0];
 }
 
 export function projectProgress(steps: ProjectStep[] = []) {

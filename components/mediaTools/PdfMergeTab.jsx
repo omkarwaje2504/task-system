@@ -61,7 +61,7 @@ export default function PdfMergeTab() {
             {files.length > 0 && (
                 <ul className="space-y-1">
                     {files.map((f, i) => (
-                        <li key={i} className="flex items-center justify-between gap-2 rounded-md border border-line px-2.5 py-1 text-[13px]">
+                        <li key={i} className="flex items-center justify-between gap-2 rounded-md border border-line px-2.5 py-1 text-[0.8125rem]">
                             <span className="truncate">{i + 1}. {f.name}</span>
                             <div className="flex shrink-0 items-center gap-1">
                                 <button className="text-xs text-muted hover:text-fg disabled:opacity-30" disabled={i === 0} onClick={() => move(i, -1)}>↑</button>

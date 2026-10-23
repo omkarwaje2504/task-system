@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const count = await db.collection("productTypes").countDocuments();
   const now = new Date();
   const doc = {
-    name: clean, slug, icon: "box", special: false, assetTab: false,
+    name: clean, slug, icon: "box", special: false, assetTab: false, modules: false,
     assetSlots: ["Cover", "Front", "Back"], steps: [], order: count, deleted: false, createdAt: now, updatedAt: now,
   };
   const { insertedId } = await db.collection("productTypes").insertOne(doc);

@@ -73,7 +73,7 @@ export default function ImageToPdfTab() {
             {files.length > 0 && (
                 <ul className="space-y-1">
                     {files.map((f, i) => (
-                        <li key={i} className="flex items-center justify-between gap-2 rounded-md border border-line px-2.5 py-1 text-[13px]">
+                        <li key={i} className="flex items-center justify-between gap-2 rounded-md border border-line px-2.5 py-1 text-[0.8125rem]">
                             <span className="truncate">{i + 1}. {f.name}</span>
                             <button className="shrink-0 text-xs text-muted hover:text-danger" onClick={() => removeAt(i)}>✕</button>
                         </li>

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { connectDB, notDeleted } from "@/lib/db";
 import { bad, requireAdmin, requireUser } from "@/lib/auth";
 
-const PUBLIC = { password: 0 };
+const PUBLIC = { password: 0, appearance: 0 };
 
 export async function GET() {
   const s = await requireUser();

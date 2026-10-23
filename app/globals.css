@@ -20,7 +20,7 @@
   --accent-fg: #ffffff;
   --accent-soft: rgba(0, 122, 255, 0.12);
   --danger: #ff3b30;
-  --glass: rgba(255, 255, 255, 0.5);
+  --glass: rgba(255, 255, 255, var(--glass-a, 0.5));
   --glass-edge: rgba(255, 255, 255, 0.45);
   --glass-hi: inset 0 1px 0.5px rgba(255, 255, 255, 0.95), inset 0 -1px 0.5px rgba(255, 255, 255, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.35);
   --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12) 45%, rgba(255, 255, 255, 0.28));
@@ -44,7 +44,7 @@
   --accent-fg: #ffffff;
   --accent-soft: rgba(10, 132, 255, 0.2);
   --danger: #ff453a;
-  --glass: rgba(24, 24, 28, 0.5);
+  --glass: rgba(24, 24, 28, var(--glass-a, 0.5));
   --glass-edge: rgba(255, 255, 255, 0.07);
   --glass-hi: inset 0 1px 0.5px rgba(255, 255, 255, 0.22), inset 0 -1px 0.5px rgba(255, 255, 255, 0.07), inset 0 0 24px rgba(255, 255, 255, 0.035);
   --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.015) 40%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.03));
@@ -78,10 +78,15 @@ body {
   color: var(--fg);
 }
 
+/* Settings → Text size scales every rem-based size (text, spacing). */
+html {
+  font-size: calc(100% * var(--text-scale, 1));
+}
+
 /* SF-style metrics: slightly tight tracking, optical sizing, grayscale AA. */
 body {
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.4;
   letter-spacing: -0.012em;
   font-optical-sizing: auto;
@@ -133,8 +138,8 @@ body {
     inset: 0;
     z-index: -1;
     border-radius: inherit;
-    -webkit-backdrop-filter: blur(16px) saturate(190%) brightness(1.08);
-    backdrop-filter: blur(16px) saturate(190%) brightness(1.08);
+    -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) saturate(190%) brightness(1.08);
+    backdrop-filter: blur(var(--glass-blur, 16px)) saturate(190%) brightness(1.08);
     pointer-events: none;
   }
   .card::after,
@@ -266,7 +271,7 @@ body {
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
   .label {
-    @apply mb-1.5 block text-[13px] font-semibold text-fg;
+    @apply mb-1.5 block text-[0.8125rem] font-semibold text-fg;
   }
   .help {
     @apply mt-1.5 text-xs text-muted;
@@ -277,7 +282,7 @@ body {
   }
 
   .section-title {
-    @apply text-[11px] font-bold tracking-wider text-muted uppercase;
+    @apply text-[0.6875rem] font-bold tracking-wider text-muted uppercase;
   }
 
   /* Data tables (desktop) */
@@ -321,6 +326,78 @@ body {
     transform: none;
   }
 }
+/*
+ * Settings → Appearance. lib/appearance.ts sets these attributes and
+ * variables on <html>; unlayered so they win over the component styles.
+ */
+
+/* Background image, dimmed so text stays readable; cards turn to glass over it. */
+:root[data-wallpaper] body {
+  background: transparent;
+}
+:root[data-wallpaper] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(rgba(0, 0, 0, var(--wallpaper-dim, 0.35)), rgba(0, 0, 0, var(--wallpaper-dim, 0.35))),
+    var(--wallpaper-url) center / cover no-repeat,
+    var(--bg);
+  pointer-events: none;
+}
+:root[data-wallpaper]:not(.dark) body::before {
+  background:
+    linear-gradient(rgba(255, 255, 255, var(--wallpaper-dim, 0.35)), rgba(255, 255, 255, var(--wallpaper-dim, 0.35))),
+    var(--wallpaper-url) center / cover no-repeat,
+    var(--bg);
+}
+:root[data-wallpaper] .card {
+  background: var(--glass-sheen), var(--glass);
+}
+:root[data-wallpaper] .card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  -webkit-backdrop-filter: blur(var(--glass-blur, 16px)) saturate(180%);
+  backdrop-filter: blur(var(--glass-blur, 16px)) saturate(180%);
+  pointer-events: none;
+}
+
+/* Primary buttons in the accent colour instead of white. */
+:root[data-buttons="accent"] .btn-primary {
+  background-color: var(--accent);
+  color: #fff;
+  box-shadow: var(--btn-hi), 0 8px 20px -10px var(--accent);
+}
+:root[data-buttons="accent"] .btn-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+}
+
+/* Tab icon style: always outline, or always filled. */
+:root[data-icon-style="outline"] .tab-ico-line {
+  opacity: 1;
+}
+:root[data-icon-style="outline"] .tab-ico-fill {
+  opacity: 0;
+}
+:root[data-icon-style="filled"] .tab-ico-line {
+  opacity: 0;
+}
+:root[data-icon-style="filled"] .tab-ico-fill {
+  opacity: 1;
+}
+
+/* Icon line weight, for every icon in the app. */
+:root[data-icon-weight="thin"] svg:is(.lucide, .tab-ico-line, .tab-ico-fill) {
+  stroke-width: 1.4px;
+}
+:root[data-icon-weight="bold"] svg:is(.lucide, .tab-ico-line, .tab-ico-fill) {
+  stroke-width: 2.6px;
+}
+
 @keyframes icon-fill {
   from {
     transform: scale(0.82);

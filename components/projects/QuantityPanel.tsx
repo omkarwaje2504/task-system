@@ -67,13 +67,13 @@ export default function QuantityPanel({ projectId, step, onSaveSettings, onChang
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-panel sm:grid-cols-4">
         {tiles.map((x) => (
           <div key={x.label} className="px-3 py-1.5 shadow-[1px_0_0_var(--line),0_1px_0_var(--line)]">
-            <p className="text-[11px] font-semibold text-muted">{x.label}</p>
-            <p className={`text-base font-extrabold tabular-nums ${x.cls}`}>{x.value.toLocaleString()} <span className="text-[11px] font-semibold text-muted">{unit}</span></p>
+            <p className="text-[0.6875rem] font-semibold text-muted">{x.label}</p>
+            <p className={`text-base font-extrabold tabular-nums ${x.cls}`}>{x.value.toLocaleString()} <span className="text-[0.6875rem] font-semibold text-muted">{unit}</span></p>
           </div>
         ))}
       </div>
       {target > 0 && (
-        <div className="flex items-center gap-2 text-[11px] font-semibold text-muted">
+        <div className="flex items-center gap-2 text-[0.6875rem] font-semibold text-muted">
           <span className="whitespace-nowrap">Target {target.toLocaleString()} {unit}</span>
           <ProgressBar value={(t.completed / target) * 100} />
           <span>{Math.round((t.completed / target) * 100)}%</span>
@@ -87,17 +87,17 @@ export default function QuantityPanel({ projectId, step, onSaveSettings, onChang
         </div>
         {settings && (
           <div className="animate-pop mb-2 grid grid-cols-2 gap-2 rounded-md bg-panel2 p-2">
-            <label className="text-[11px] font-semibold text-muted">Unit
+            <label className="text-[0.6875rem] font-semibold text-muted">Unit
               <input className="input mt-0.5" defaultValue={unit} onBlur={(e) => e.target.value.trim() !== unit && onSaveSettings({ unit: e.target.value })} placeholder="RxPad" />
             </label>
-            <label className="text-[11px] font-semibold text-muted">Target (optional)
+            <label className="text-[0.6875rem] font-semibold text-muted">Target (optional)
               <input type="number" min={0} className="input mt-0.5" defaultValue={target || ""} onBlur={(e) => Number(e.target.value) !== target && onSaveSettings({ target: Number(e.target.value) || null })} />
             </label>
           </div>
         )}
         <div className="grid grid-cols-3 gap-1.5 lg:grid-cols-[repeat(3,minmax(0,90px))_auto_minmax(0,1fr)_auto] lg:items-end">
           {(["added", "completed", "declined"] as const).map((k) => (
-            <label key={k} className="text-[11px] font-semibold text-muted capitalize">{k}
+            <label key={k} className="text-[0.6875rem] font-semibold text-muted capitalize">{k}
               <input type="number" min={0} inputMode="numeric" className={`${NUM} mt-0.5`} placeholder="0" value={form[k]}
                 onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
             </label>

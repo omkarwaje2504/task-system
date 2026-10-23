@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { Document } from "mongodb";
-import { connectDB, escapeRegex, isId, notDeleted, oid } from "@/lib/db";
+import { connectDB, escapeRegex, isId, notDeleted, notSample, oid } from "@/lib/db";
 import { bad, requireUser } from "@/lib/auth";
 import { resolveBrand, resolveCompany } from "@/lib/clients";
 import { logActivity } from "@/lib/activity";
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   const status = params.get("status") || "active";
   const q = (params.get("q") || "").trim();
 
-  const match: Document = { ...notDeleted };
+  const match: Document = { ...notDeleted, ...notSample };
   if (status !== "all") match.status = status;
   if (type === "others") {
     const special = await db.collection("productTypes").find({ special: true, ...notDeleted }).project({ _id: 1 }).toArray();
@@ -38,13 +38,30 @@ export async function GET(req: Request) {
     pipeline.push({ $match: { $or: [{ theme: rx }, { "brand.name": rx }, { "company.name": rx }, { "type.name": rx }] } });
   }
   pipeline.push(
-    { $lookup: { from: "tasks", let: { p: "$_id" }, pipeline: [{ $match: { $expr: { $eq: ["$project", "$$p"] }, deleted: { $ne: true }, status: { $ne: "done" } } }, { $count: "n" }], as: "openTasks" } },
+    { $lookup: { from: "projectFiles", let: { p: "$_id" }, pipeline: [{ $match: { $expr: { $eq: ["$project", "$$p"] }, deleted: { $ne: true } } }, { $count: "n" }], as: "fileCount" } },
+    {
+      $lookup: {
+        from: "projectFiles", let: { p: "$_id" }, as: "cover",
+        pipeline: [
+          { $match: { $expr: { $eq: ["$project", "$$p"] }, deleted: { $ne: true }, thumb: { $ne: null } } },
+          { $sort: { final: -1, createdAt: -1 } },
+          { $limit: 1 },
+          { $project: { name: 1, title: 1, thumb: 1, kind: 1, final: 1 } },
+        ],
+      },
+    },
     {
       $project: {
-        theme: 1, deadline: 1, status: 1, createdAt: 1, updatedAt: 1, completedAt: 1, legacyName: 1,
-        "steps.id": 1, "steps.title": 1, "steps.status": 1, "steps.kind": 1, "steps.assignee": 1,
+        theme: 1, deadline: 1, status: 1, createdAt: 1, updatedAt: 1, completedAt: 1, legacyName: 1, priority: 1,
+        // Steps are the tasks: enough of each for the table and the hover card.
+        "steps.id": 1, "steps.title": 1, "steps.status": 1, "steps.kind": 1, "steps.assignees": 1, "steps.dueDate": 1,
+        "steps.note": 1, "steps.doneAt": 1, "steps.doneByName": 1, "steps.updatedAt": 1, "steps.createdAt": 1,
+        // Enough step data for the list's count column (daily totals / videos done).
+        "steps.data.totals": 1, "steps.data.target": 1, "steps.data.unit": 1, "steps.data.voices": 1, "steps.data.languages": 1,
         ...TYPE_FIELDS, "brand._id": 1, "brand.name": 1, "company._id": 1, "company.name": 1,
-        openTasks: { $ifNull: [{ $arrayElemAt: ["$openTasks.n", 0] }, 0] },
+        fileCount: { $ifNull: [{ $arrayElemAt: ["$fileCount.n", 0] }, 0] },
+        cover: { $arrayElemAt: ["$cover", 0] },
+        notes: 1,
       },
     },
     { $sort: status === "completed" ? { completedAt: -1, updatedAt: -1 } : { createdAt: -1 } },
@@ -76,7 +93,8 @@ export async function POST(req: Request) {
     deadline: b.deadline || null,
     notes: String(b.notes || "").trim(),
     status: "active",
-    steps: stepsFromTemplate((type.steps || []) as StepTemplate[], { languages }),
+    // useTemplate: false → start empty and add tasks one by one.
+    steps: b.useTemplate === false ? [] : stepsFromTemplate((type.steps || []) as StepTemplate[], { languages }),
     createdBy: oid(s.id),
     createdByName: s.name,
     completedAt: null,

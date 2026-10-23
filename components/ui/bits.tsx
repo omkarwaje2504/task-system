@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, Inbox } from "lucide-react";
 import { daysUntil, fmtDate } from "@/lib/client";
@@ -12,7 +12,7 @@ export function initials(name = "") {
   return ((parts[0]?.[0] || "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase() || "?";
 }
 
-const AV_SIZES = { xs: "h-5 w-5 text-[9px]", sm: "h-6 w-6 text-[10px]", md: "h-8 w-8 text-[11px]", lg: "h-10 w-10 text-sm" };
+const AV_SIZES = { xs: "h-5 w-5 text-[0.5625rem]", sm: "h-6 w-6 text-[0.625rem]", md: "h-8 w-8 text-[0.6875rem]", lg: "h-10 w-10 text-sm" };
 
 export function Avatar({ name, size = "sm", className = "" }: { name?: string; size?: keyof typeof AV_SIZES; className?: string }) {
   return (
@@ -119,7 +119,7 @@ export function ProgressRing({ value, size = 40 }: { value: number; size?: numbe
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent)" strokeWidth="4"
           strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c - (c * Math.min(100, value)) / 100} className="transition-all duration-500" />
       </svg>
-      <span className="absolute text-[10px] font-bold">{value}%</span>
+      <span className="absolute text-[0.625rem] font-bold">{value}%</span>
     </span>
   );
 }
@@ -155,14 +155,14 @@ export function Tabs({ items, active, onChange }: { items: TabItem[]; active: st
     <div className="no-scrollbar -mx-3 mb-3 flex gap-1 overflow-x-auto border-b border-line px-3 sm:mx-0 sm:px-0">
       {items.map((t) => {
         const on = t.key === active;
-        const cls = `-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-2 text-[13px] font-semibold transition-colors ${
+        const cls = `-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-2.5 py-2 text-[0.8125rem] font-semibold transition-colors ${
           on ? "border-accent text-accent" : "border-transparent text-muted hover:text-fg"
         }`;
         const inner = (
           <>
             {t.icon}
             {t.label}
-            {t.count !== undefined && <span className="rounded bg-panel2 px-1 text-[10px] text-muted">{t.count}</span>}
+            {t.count !== undefined && <span className="rounded bg-panel2 px-1 text-[0.625rem] text-muted">{t.count}</span>}
           </>
         );
         return t.href
@@ -216,37 +216,77 @@ export function Field({ label, help, children, optional }: { label: ReactNode; h
 
 // ---- Sortable tables ---------------------------------------------------------------
 
-export type Sort = { key: string; dir: "asc" | "desc" } | null;
+export type SortLevel = { key: string; dir: "asc" | "desc" };
+/** Sort levels in order: the first decides, the next breaks ties, and so on. */
+export type Sort = SortLevel[];
 
-/** Click a header: ascending → descending → off. Empty values always sort last. */
-export function useSort<T>(rows: T[], getters: Record<string, (r: T) => string | number | null | undefined>, initial: Sort = null) {
-  const [sort, setSort] = useState<Sort>(initial);
+/**
+ * Multi-column sort. Click a header to add it as the next level (so Type,
+ * then Company); click it again to flip it, a third time to drop it.
+ * Empty values always sort last. `storageKey` remembers the choice per browser.
+ */
+export function useSort<T>(rows: T[], getters: Record<string, (r: T) => string | number | null | undefined>, storageKey?: string) {
+  const [sort, setSort] = useState<Sort>([]);
+
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(`sort:${storageKey}`) || "[]");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- restore the saved sort after hydration
+      if (Array.isArray(saved)) setSort(saved.filter((l) => l && typeof l.key === "string" && (l.dir === "asc" || l.dir === "desc")));
+    } catch {}
+  }, [storageKey]);
+
   const sorted = useMemo(() => {
-    if (!sort || !getters[sort.key]) return rows;
-    const get = getters[sort.key];
+    const levels = sort.filter((l) => getters[l.key]);
+    if (!levels.length) return rows;
     return [...rows].sort((a, b) => {
-      const x = get(a);
-      const y = get(b);
-      if (x == null || x === "") return 1;
-      if (y == null || y === "") return -1;
-      const c = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: "base" });
-      return sort.dir === "asc" ? c : -c;
+      for (const { key, dir } of levels) {
+        const x = getters[key](a);
+        const y = getters[key](b);
+        const xe = x == null || x === "";
+        const ye = y == null || y === "";
+        if (xe || ye) {
+          if (xe && ye) continue;
+          return xe ? 1 : -1;
+        }
+        const c = typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: "base" });
+        if (c) return dir === "asc" ? c : -c;
+      }
+      return 0;
     });
-    // getters is a fresh object each render; the sort key and rows are what matter.
+    // getters is a fresh object each render; the sort levels and rows are what matter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, sort]);
-  const toggle = (key: string) =>
-    setSort((s) => (s?.key !== key ? { key, dir: "asc" } : s.dir === "asc" ? { key, dir: "desc" } : null));
-  return { sorted, sort, toggle };
+
+  function save(next: Sort) {
+    setSort(next);
+    if (storageKey) {
+      try {
+        localStorage.setItem(`sort:${storageKey}`, JSON.stringify(next));
+      } catch {}
+    }
+  }
+  const toggle = (key: string) => {
+    const at = sort.findIndex((l) => l.key === key);
+    if (at < 0) save([...sort, { key, dir: "asc" }]);
+    else if (sort[at].dir === "asc") save(sort.map((l, i) => (i === at ? { key, dir: "desc" } : l)));
+    else save(sort.filter((_, i) => i !== at));
+  };
+  return { sorted, sort, toggle, clear: () => save([]) };
 }
 
 export function SortTh({ label, k, sort, onSort, className = "" }: { label: string; k: string; sort: Sort; onSort: (k: string) => void; className?: string }) {
-  const Icon = sort?.key !== k ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
+  const at = sort.findIndex((l) => l.key === k);
+  const level = at >= 0 ? sort[at] : null;
+  const Icon = !level ? ArrowUpDown : level.dir === "asc" ? ArrowUp : ArrowDown;
   return (
-    <th className={className} aria-sort={sort?.key === k ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
-      <button onClick={() => onSort(k)} className={`inline-flex items-center gap-1 uppercase hover:text-fg ${sort?.key === k ? "text-accent" : ""}`}>
+    <th className={className} aria-sort={level ? (level.dir === "asc" ? "ascending" : "descending") : "none"}>
+      <button onClick={() => onSort(k)} title={level ? "Click to flip, again to remove" : sort.length ? "Add as the next sort" : "Sort by this"}
+        className={`inline-flex items-center gap-1 uppercase hover:text-fg ${level ? "text-accent" : ""}`}>
         {label}
-        <Icon className={`h-3 w-3 ${sort?.key === k ? "" : "opacity-40"}`} />
+        <Icon className={`h-3 w-3 ${level ? "" : "opacity-40"}`} />
+        {level && sort.length > 1 && <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent text-[0.5625rem] leading-none text-white">{at + 1}</span>}
       </button>
     </th>
   );

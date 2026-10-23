@@ -4,14 +4,15 @@ import { Suspense, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Building, ChevronDown, Clapperboard, KeyRound, LayoutGrid, LogOut,
-  Menu, Printer, Settings2, ShieldCheck, Users, Wrench, X, type LucideIcon,
+  Building, ChevronDown, Clapperboard, FlaskConical, KeyRound, LayoutGrid, LogOut,
+  Menu, Palette, Printer, Settings2, ShieldCheck, Users, Wrench, X, type LucideIcon,
 } from "lucide-react";
 import { api, useMe, useTypes } from "@/lib/client";
 import TypeIcon from "@/components/ui/TypeIcon";
 import { Avatar } from "@/components/ui/bits";
 import ThemeToggle from "./ThemeToggle";
 import AccountModal from "./AccountModal";
+import { AppearanceSync } from "@/components/settings/useAppearance";
 import TabIcon, { type TabIconName } from "./TabIcon";
 
 export const APP_NAME = "Studio Desk";
@@ -26,7 +27,7 @@ function NavLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => void 
   const active = item.match ? item.match(path) : path === item.href;
   return (
     <Link href={item.href} onClick={onNavigate} aria-current={active ? "page" : undefined}
-      className={`tap group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[13px] font-medium ${
+      className={`tap group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[0.8125rem] font-medium ${
         active ? "bg-accent-soft font-semibold text-accent" : "text-muted hover:bg-panel2 hover:text-fg"
       }`}>
       <span className={active ? "" : "opacity-90 group-hover:opacity-100"}>{item.icon}</span>
@@ -83,18 +84,19 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-gradient-to-br from-[#5e5ce6] to-accent text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]">
           <Clapperboard className="h-4 w-4" strokeWidth={2.4} />
         </span>
-        <span className="text-[15px] font-extrabold tracking-tight">{APP_NAME}</span>
+        <span className="text-[0.9375rem] font-extrabold tracking-tight">{APP_NAME}</span>
       </Link>
 
       <nav className="flex-1 overflow-y-auto px-2 pt-2 pb-3">
         <div className="space-y-0.5">
           <NavLink onNavigate={onNavigate} item={{ href: "/dashboard", label: "Dashboard", icon: tabIcon("home") }} />
-          <NavLink onNavigate={onNavigate} item={{ href: "/tasks", label: "My Tasks", icon: tabIcon("tasks") }} />
+          <NavLink onNavigate={onNavigate} item={{ href: "/tasks", label: "My steps", icon: tabIcon("tasks") }} />
         </div>
 
         <Section title="Projects" storageKey="projects"
           action={<Link href="/projects/all?new=1" onClick={onNavigate} className="text-xs font-bold text-accent hover:underline">+ New</Link>}>
           <NavLink onNavigate={onNavigate} item={{ href: "/projects/all", label: "All projects", icon: tabIcon("projects"), match: (p) => p === "/projects/all" || p === "/projects" }} />
+          <NavLink onNavigate={onNavigate} item={{ href: "/samples", label: "Samples", icon: lucide(FlaskConical), match: (p) => p.startsWith("/samples") }} />
           {loadingRows}
           {special.map((t) => (
             <NavLink key={t._id} onNavigate={onNavigate} item={{ href: `/projects/${t.slug}`, label: t.name, icon: <TypeIcon icon={t.icon} size="xs" /> }} />
@@ -107,7 +109,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <NavLink key={t._id} onNavigate={onNavigate} item={{ href: `/assets/${t.slug}`, label: `${t.name} designs`, icon: <TypeIcon icon={t.icon} size="xs" /> }} />
           ))}
           {loadingRows}
-          {types && !assetTypes.length && <p className="px-2.5 py-1 text-[11px] text-muted">Turn on “Asset tab” for a product type to see it here.</p>}
+          {types && !assetTypes.length && <p className="px-2.5 py-1 text-[0.6875rem] text-muted">Turn on “Asset tab” for a product type to see it here.</p>}
         </Section>
 
         <Section title="Tools" storageKey="tools">
@@ -115,6 +117,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <NavLink onNavigate={onNavigate} item={{ href: "/printers", label: "Printer Types", icon: lucide(Printer) }} />
           <NavLink onNavigate={onNavigate} item={{ href: "/credentials", label: "Credentials", icon: lucide(KeyRound) }} />
           <NavLink onNavigate={onNavigate} item={{ href: "/clients", label: "Companies & Brands", icon: lucide(Building) }} />
+          <NavLink onNavigate={onNavigate} item={{ href: "/settings", label: "Settings", icon: lucide(Palette) }} />
         </Section>
 
         {me?.role === "admin" && (
@@ -130,8 +133,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <div className="flex items-center gap-2 rounded-lg px-1.5 py-1">
           <Avatar name={me?.name} size="sm" />
           <button className="min-w-0 flex-1 text-left" onClick={() => setAccount(true)} title="Change password">
-            <p className="truncate text-[13px] font-bold">{me?.name || "…"}</p>
-            <p className="flex items-center gap-1 text-[11px] text-muted">
+            <p className="truncate text-[0.8125rem] font-bold">{me?.name || "…"}</p>
+            <p className="flex items-center gap-1 text-[0.6875rem] text-muted">
               {me?.role === "admin" && <ShieldCheck className="h-3 w-3" />}
               {me?.role === "admin" ? "Admin" : "Team member"}
             </p>
@@ -149,7 +152,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 const BOTTOM: { href: string; label: string; icon: TabIconName; match: (p: string) => boolean }[] = [
   { href: "/dashboard", label: "Home", icon: "home", match: (p: string) => p === "/dashboard" },
   { href: "/projects/all", label: "Projects", icon: "projects", match: (p: string) => p.startsWith("/projects") || p.startsWith("/project/") },
-  { href: "/tasks", label: "Tasks", icon: "tasks", match: (p: string) => p === "/tasks" },
+  { href: "/tasks", label: "My steps", icon: "tasks", match: (p: string) => p === "/tasks" },
   { href: "/assets", label: "Assets", icon: "assets", match: (p: string) => p.startsWith("/assets") },
 ];
 
@@ -170,13 +173,13 @@ function BottomNav({ onMore }: { onMore: () => void }) {
         const on = match(path);
         return (
           <Link key={href} href={href} aria-current={on ? "page" : undefined}
-            className={`tap flex flex-1 flex-col items-center gap-0.5 rounded-[26px] py-1.5 text-[10px] font-semibold ${on ? "tab-lens text-fg" : "text-muted hover:text-fg"}`}>
+            className={`tap flex flex-1 flex-col items-center gap-0.5 rounded-[26px] py-1.5 text-[0.625rem] font-semibold ${on ? "tab-lens text-fg" : "text-muted hover:text-fg"}`}>
             <TabIcon name={icon} />
             {label}
           </Link>
         );
       })}
-      <button onClick={onMore} className="tap flex flex-1 flex-col items-center gap-0.5 rounded-[26px] py-1.5 text-[10px] font-semibold text-muted lg:hidden">
+      <button onClick={onMore} className="tap flex flex-1 flex-col items-center gap-0.5 rounded-[26px] py-1.5 text-[0.625rem] font-semibold text-muted lg:hidden">
         <TabIcon name="more" />
         More
       </button>
@@ -203,6 +206,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh">
+      <AppearanceSync />
       {/* Desktop sidebar */}
       <aside className="glass fixed inset-y-3 left-3 z-30 hidden w-[220px] rounded-[22px] lg:block">
         <Suspense fallback={<SidebarSkeleton />}><SidebarContent /></Suspense>
@@ -211,7 +215,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* Mobile top bar */}
       <header className="glass glass-flat sticky top-0 z-30 flex items-center gap-1.5 !border-x-0 !border-t-0 !border-b-line px-2 py-1.5 lg:hidden">
         <button className="icon-btn" onClick={() => setDrawer(true)} aria-label="Open menu"><Menu className="h-4.5 w-4.5" /></button>
-        <Link href="/dashboard" className="flex items-center gap-2 text-[15px] font-extrabold">
+        <Link href="/dashboard" className="flex items-center gap-2 text-[0.9375rem] font-extrabold">
           <span className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-gradient-to-br from-[#5e5ce6] to-accent text-white">
             <Clapperboard className="h-4 w-4" strokeWidth={2.4} />
           </span>

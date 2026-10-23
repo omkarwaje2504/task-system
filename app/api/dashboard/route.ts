@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { connectDB, notDeleted, oid } from "@/lib/db";
+import { connectDB, notDeleted, notSample } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { PROJECT_LOOKUPS, TYPE_FIELDS } from "@/lib/projects";
 
@@ -9,42 +9,38 @@ export async function GET() {
   const s = await requireUser();
   if (s instanceof NextResponse) return s;
   const db = await connectDB();
-  const me = oid(s.id);
   const now = new Date();
   const today = day(now);
   const weekAhead = day(new Date(now.getTime() + 7 * 864e5));
   const monthAgo = new Date(now.getTime() - 30 * 864e5);
-  const active = { ...notDeleted, status: "active" };
+  const active = { ...notDeleted, ...notSample, status: "active" };
   const projects = db.collection("projects");
 
-  const [activeCount, dueSoon, overdue, completed30, myOpenTasks, myTasks, mySteps, upcoming, byType, activity] = await Promise.all([
+  // Steps are the tasks: "mine" = unfinished steps assigned to me in running projects.
+  const running = { ...notDeleted, ...notSample, status: { $in: ["active", "on-hold"] }, "steps.assignees": s.id };
+  const myOpen = [{ $unwind: "$steps" }, { $match: { "steps.assignees": s.id, "steps.status": { $ne: "done" } } }];
+
+  const [activeCount, dueSoon, overdue, completed30, myOpenCount, mySteps, upcoming, byType, activity, workload, people] = await Promise.all([
     projects.countDocuments(active),
     projects.countDocuments({ ...active, deadline: { $gte: today, $lte: weekAhead } }),
     projects.countDocuments({ ...active, deadline: { $lt: today, $ne: null } }),
-    projects.countDocuments({ ...notDeleted, status: "completed", completedAt: { $gte: monthAgo } }),
-    db.collection("tasks").countDocuments({ ...notDeleted, assignees: me, status: { $ne: "done" } }),
-    db.collection("tasks").aggregate([
-      { $match: { ...notDeleted, assignees: me, status: { $ne: "done" } } },
-      { $sort: { dueDate: 1, createdAt: -1 } },
+    projects.countDocuments({ ...notDeleted, ...notSample, status: "completed", completedAt: { $gte: monthAgo } }),
+    projects.aggregate([{ $match: running }, ...myOpen, { $count: "n" }]).toArray(),
+    projects.aggregate([
+      { $match: running },
+      ...myOpen,
+      { $addFields: { _due: { $ifNull: ["$steps.dueDate", "9999-12-31"] } } },
+      { $sort: { _due: 1, createdAt: -1 } },
       { $limit: 8 },
-      { $lookup: { from: "projects", localField: "project", foreignField: "_id", as: "p" } },
-      { $lookup: { from: "brands", localField: "p.brand", foreignField: "_id", as: "b" } },
-      { $lookup: { from: "productTypes", localField: "p.productType", foreignField: "_id", as: "t" } },
+      ...PROJECT_LOOKUPS,
+      // Same shape as /api/steps rows, so both use one row component.
       {
         $project: {
-          title: 1, dueDate: 1, status: 1, project: 1, assignees: 1,
-          brandName: { $arrayElemAt: ["$b.name", 0] }, theme: { $arrayElemAt: ["$p.theme", 0] },
-          typeName: { $arrayElemAt: ["$t.name", 0] }, typeIcon: { $arrayElemAt: ["$t.icon", 0] },
+          _id: 0, step: "$steps",
+          project: { _id: "$_id", theme: "$theme", legacyName: "$legacyName", status: "$status", deadline: "$deadline" },
+          brand: { name: "$brand.name" }, ...TYPE_FIELDS,
         },
       },
-    ]).toArray(),
-    projects.aggregate([
-      { $match: { ...active, "steps.assignee": s.id } },
-      { $unwind: "$steps" },
-      { $match: { "steps.assignee": s.id, "steps.status": { $ne: "done" } } },
-      ...PROJECT_LOOKUPS,
-      { $project: { theme: 1, deadline: 1, step: "$steps", ...TYPE_FIELDS, "brand.name": 1 } },
-      { $limit: 8 },
     ]).toArray(),
     projects.aggregate([
       { $match: { ...active, deadline: { $ne: null } } },
@@ -62,10 +58,56 @@ export async function GET() {
       { $sort: { count: -1 } },
     ]).toArray(),
     db.collection("activity").find({}).sort({ createdAt: -1 }).limit(12).toArray(),
+    // Who's working on what: steps people marked "I'm doing" (in progress), per person,
+    // with each person's open / overdue counts alongside.
+    projects.aggregate([
+      { $match: { ...notDeleted, ...notSample, status: { $in: ["active", "on-hold"] }, "steps.assignees.0": { $exists: true } } },
+      { $unwind: "$steps" },
+      { $match: { "steps.status": { $ne: "done" }, "steps.assignees.0": { $exists: true } } },
+      ...PROJECT_LOOKUPS,
+      { $unwind: "$steps.assignees" },
+      {
+        $project: {
+          person: "$steps.assignees",
+          item: {
+            step: { id: "$steps.id", title: "$steps.title", status: "$steps.status", dueDate: "$steps.dueDate", note: "$steps.note", updatedAt: "$steps.updatedAt", module: "$steps.module" },
+            project: { _id: "$_id", theme: "$theme", legacyName: "$legacyName" },
+            brand: "$brand.name", typeIcon: "$type.icon", typeName: "$type.name",
+          },
+        },
+      },
+      // Most recently touched first, so each person's list starts with their latest update.
+      { $sort: { "item.step.updatedAt": -1 } },
+      {
+        $group: {
+          _id: "$person",
+          open: { $sum: 1 },
+          overdue: { $sum: { $cond: [{ $and: [{ $ne: [{ $ifNull: ["$item.step.dueDate", null] }, null] }, { $lt: ["$item.step.dueDate", today] }] }, 1, 0] } },
+          items: { $push: "$item" },
+        },
+      },
+      {
+        $project: {
+          open: 1, overdue: 1,
+          doing: { $slice: [{ $filter: { input: "$items", cond: { $eq: ["$$this.step.status", "doing"] } } }, 5] },
+        },
+      },
+    ]).toArray(),
+    db.collection("users").find({ ...notDeleted, active: { $ne: false } }, { projection: { name: 1, team: 1 } }).sort({ name: 1 }).toArray(),
   ]);
 
+  // Only people who are on something right now (pressed "I'm doing"), most recently active first.
+  const names = new Map(people.map((u) => [String(u._id), u]));
+  const team = workload
+    .filter((w) => w.doing.length && names.has(String(w._id)))
+    .map((w) => {
+      const u = names.get(String(w._id))!;
+      return { id: String(u._id), name: u.name, team: u.team || "", open: w.open, overdue: w.overdue, doing: w.doing };
+    })
+    .sort((a, b) => String(b.doing[0]?.step.updatedAt || "").localeCompare(String(a.doing[0]?.step.updatedAt || "")));
+
   return NextResponse.json({
-    stats: { active: activeCount, dueSoon, overdue, completed30, myOpenTasks },
-    myTasks, mySteps, upcoming, byType, activity,
+    stats: { active: activeCount, dueSoon, overdue, completed30, myOpenSteps: myOpenCount[0]?.n || 0 },
+    mySteps, upcoming, byType, activity, team,
   });
 }

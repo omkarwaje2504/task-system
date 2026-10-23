@@ -39,8 +39,8 @@ export default function MediaToolsPage() {
             className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors ${tool === key ? "border-accent bg-accent-soft" : "border-line bg-panel hover:border-accent/50"}`}>
             <Icon className={`h-4 w-4 shrink-0 ${tool === key ? "text-accent" : "text-muted"}`} />
             <span>
-              <span className="block text-[13px] font-semibold">{label}</span>
-              <span className="text-[11px] text-muted">{help}</span>
+              <span className="block text-[0.8125rem] font-semibold">{label}</span>
+              <span className="text-[0.6875rem] text-muted">{help}</span>
             </span>
           </button>
         ))}

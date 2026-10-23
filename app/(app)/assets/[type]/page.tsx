@@ -61,8 +61,8 @@ export default function AssetLibrary() {
             {a.files.length > 1 && <span className="chip absolute right-1.5 bottom-1.5 bg-black/60 text-white">{a.files.length}</span>}
           </span>
           <span className="px-2 py-1.5">
-            <span className="block truncate text-[13px] font-semibold group-hover:text-accent">{a.title}</span>
-            {a.description && <span className="block truncate text-[11px] text-muted">{a.description}</span>}
+            <span className="block truncate text-[0.8125rem] font-semibold group-hover:text-accent">{a.title}</span>
+            {a.description && <span className="block truncate text-[0.6875rem] text-muted">{a.description}</span>}
           </span>
         </button>
       ))}

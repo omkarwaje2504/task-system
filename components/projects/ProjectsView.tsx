@@ -5,8 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FolderKanban, LayoutGrid, Plus } from "lucide-react";
 import TypeIcon from "@/components/ui/TypeIcon";
 import { EmptyState, PageHeader, PageIcon, SearchInput, Segmented, TableSkeleton, Tabs } from "@/components/ui/bits";
-import ProjectCard, { ProjectsTable } from "./ProjectCard";
+import ProjectCard, { ProjectsTable, priorityFirst } from "./ProjectCard";
 import NewProjectModal from "./NewProjectModal";
+import { useProjectHover } from "./ProjectHoverCard";
 import { useApi, useTypes } from "@/lib/client";
 import type { Project } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export default function ProjectsView({ typeSlug }: { typeSlug: string }) {
   const [q, setQ] = useState("");
   const [subType, setSubType] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const hover = useProjectHover();
 
   // "+ New" in the sidebar links here with ?new=1.
   useEffect(() => {
@@ -109,8 +111,9 @@ export default function ProjectsView({ typeSlug }: { typeSlug: string }) {
         </div>
       ) : (
         <>
-          <div className="hidden lg:block"><ProjectsTable projects={shown} showType={!type} /></div>
-          <div className="card overflow-hidden !p-0 lg:hidden">{shown.map((p) => <ProjectCard key={p._id} p={p} />)}</div>
+          <div className="hidden lg:block"><ProjectsTable projects={shown} showType={!type} rowProps={hover.rowProps} /></div>
+          {hover.card}
+          <div className="card overflow-hidden !p-0 lg:hidden">{priorityFirst(shown).map((p) => <ProjectCard key={p._id} p={p} />)}</div>
         </>
       )}
 

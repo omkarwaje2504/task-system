@@ -202,7 +202,7 @@ const fileList = (files) => (files || []).map((f) => `- ${f.name || "file"}: ${f
 const oldProjects = await src.collection("projects").find({ deleted: { $ne: true } }).toArray();
 const allOldTasks = await src.collection("tasks").find({}).toArray();
 const taskTitle = new Map(allOldTasks.map((t) => [String(t._id), t.title]));
-let projectsNew = 0, projectsFilled = 0, tasksNew = 0, logsNew = 0;
+let projectsNew = 0, projectsFilled = 0, tasksNew = 0, tasksFinished = 0, logsNew = 0, totalsUpdated = 0;
 for (const op of oldProjects) {
   const type = await typeFor(op.projectType);
   const brand = await brandFor(op.brand);
@@ -297,7 +297,7 @@ for (const op of oldProjects) {
   for (const t of oldTasks) {
     const isDone = t.status !== "pending";
     const description = [t.description, t.attachments?.length && `Attachments:\n${fileList(t.attachments)}`].filter(Boolean).join("\n\n");
-    tasksNew += await upsert("tasks", t._id, {
+    const added = await upsert("tasks", t._id, {
       // The new app has no sub-tasks, so a sub-task carries its parent's title.
       title: t.parentTask && taskTitle.has(String(t.parentTask)) ? `${taskTitle.get(String(t.parentTask)).trim()} › ${t.title.trim()}` : t.title.trim(),
       ...(description ? { description } : {}),
@@ -306,19 +306,42 @@ for (const op of oldProjects) {
       createdBy: t.createdBy || null, createdByName: nameOf(t.createdBy),
       importedFrom: SOURCE_DB, deleted: false, createdAt: t.createdAt || now, updatedAt: now,
     });
+    tasksNew += added;
+    // Finished in the old tracker since the last import: carry that forward (never re-open).
+    if (!added && isDone) {
+      const r = await db.collection("tasks").updateOne(
+        { _id: t._id, status: { $ne: "done" } },
+        { $set: { status: "done", doneAt: t.completedAt || t.updatedAt || now, updatedAt: now } },
+      );
+      tasksFinished += r.modifiedCount;
+    }
   }
   if (!qStepId) continue;
+  let projectLogsNew = 0;
   for (const l of logs) {
     const prefix = tracked.length > 1 ? `[${taskTitle.get(String(l.task))}] ` : "";
-    logsNew += await upsert("progress", l._id, {
+    projectLogsNew += await upsert("progress", l._id, {
       project: op._id, stepId: qStepId, date: l.date,
       added: l.added || 0, completed: l.completed || 0, declined: l.declined || 0,
       note: (prefix + (l.note || "")).trim(), user: l.user || null, userName: nameOf(l.user),
       deleted: false, createdAt: l.createdAt || now,
     });
   }
+  logsNew += projectLogsNew;
+  // New days logged on an existing project: re-add the step's totals from all its logs.
+  if (projectLogsNew && !inserted) {
+    const [sum] = await db.collection("progress").aggregate([
+      { $match: { project: op._id, stepId: qStepId, deleted: { $ne: true } } },
+      { $group: { _id: null, added: { $sum: "$added" }, completed: { $sum: "$completed" }, declined: { $sum: "$declined" } } },
+    ]).toArray();
+    await db.collection("projects").updateOne(
+      { _id: op._id, "steps.id": qStepId },
+      { $set: { "steps.$.data.totals": { added: sum?.added || 0, completed: sum?.completed || 0, declined: sum?.declined || 0 } } },
+    );
+    totalsUpdated++;
+  }
 }
-log(`projects: ${projectsNew} new of ${oldProjects.length}${projectsFilled ? ` (${projectsFilled} given steps)` : ""} · tasks: ${tasksNew} new · daily logs: ${logsNew} new`);
+log(`projects: ${projectsNew} new of ${oldProjects.length}${projectsFilled ? ` (${projectsFilled} given steps)` : ""} · tasks: ${tasksNew} new, ${tasksFinished} finished since · daily logs: ${logsNew} new (${totalsUpdated} project totals updated)`);
 
 // ---- Activity history ------------------------------------------------------
 // Old messages start with the person's name; the new feed shows it separately.
@@ -343,9 +366,14 @@ await db.collection("productTypes").createIndex({ slug: 1 });
 await db.collection("projects").createIndex({ productType: 1, status: 1, createdAt: -1 });
 await db.collection("tasks").createIndex({ assignees: 1, status: 1 });
 await db.collection("tasks").createIndex({ project: 1 });
+await db.collection("tasks").createIndex({ project: 1, status: -1, updatedAt: -1 });
+await db.collection("projectFiles").createIndex({ project: 1, deleted: 1, final: -1, createdAt: -1 });
 await db.collection("progress").createIndex({ project: 1, stepId: 1 });
 await db.collection("assets").createIndex({ productType: 1, createdAt: -1 });
 await db.collection("activity").createIndex({ createdAt: -1 });
 log("indexes ready");
 
 await client.close();
+
+// Steps are the tasks: fold the tasks just imported into their projects as steps.
+await import("./merge-tasks-into-steps.mjs");
