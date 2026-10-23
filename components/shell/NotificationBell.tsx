@@ -8,7 +8,7 @@ import FloatingPanel from "@/components/ui/Floating";
 import { Avatar } from "@/components/ui/bits";
 import { api, fetcher, timeAgo } from "@/lib/client";
 import { toast, toastError } from "@/lib/toast";
-import { disablePush, enablePush, onForegroundPush, pushConfigured, pushSupported, savedToken } from "@/lib/push";
+import { disablePush, enablePush, onForegroundPush, pushSupported, savedToken } from "@/lib/push";
 
 type Note = { _id: string; type: string; title: string; body: string; link: string; actorName?: string; read: boolean; createdAt: string };
 type Feed = { items: Note[]; unread: number; push: boolean };
@@ -104,7 +104,7 @@ export default function NotificationBell() {
             )}
           </div>
 
-          {pushConfigured() && pushSupported() && pushOn !== null && (
+          {data?.push && pushSupported() && pushOn !== null && (
             <button onClick={togglePush} disabled={busy}
               className="flex shrink-0 items-center gap-2 border-b border-line/70 px-3 py-2 text-left text-xs hover:bg-panel2/60">
               {pushOn ? <BellOff className="h-4 w-4 shrink-0 text-muted" /> : <BellRing className="h-4 w-4 shrink-0 text-accent" />}

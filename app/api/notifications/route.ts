@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB, isId, oid } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { firebaseWebConfig } from "@/lib/firebaseConfig";
 
 /** The signed-in person's latest notifications and how many are unread. */
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
     db.collection("notifications").find({ user: me }).sort({ createdAt: -1 }).limit(50).toArray(),
     db.collection("notifications").countDocuments({ user: me, read: false }),
   ]);
-  return NextResponse.json({ items, unread, push: !!process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
+  return NextResponse.json({ items, unread, push: firebaseWebConfig().ready });
 }
 
 /** Mark read: { ids: [...] } — or everything when no ids are given. */
