@@ -72,7 +72,7 @@ export default function LoginPage() {
             <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-gradient-to-br from-[#5e5ce6] to-accent text-white">
               <Clapperboard className="h-4.5 w-4.5" strokeWidth={2.4} />
             </span>
-            <span className="text-base font-extrabold tracking-tight">Studio Desk</span>
+            <span className="text-base font-extrabold tracking-tight">Task System</span>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight">Welcome back 👋</h1>
           <p className="mt-1 text-[0.8125rem] text-muted">Log in with the email and password your admin gave you.</p>

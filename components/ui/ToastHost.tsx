@@ -14,7 +14,7 @@ export default function ToastHost() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   useEffect(() => subscribeToasts(setToasts), []);
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-[120] flex flex-col items-center gap-2 px-4 lg:bottom-24 lg:left-auto lg:right-6 lg:items-end">
+    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-[120] flex flex-col items-center gap-2 px-4 lg:bottom-6 lg:left-auto lg:right-6 lg:items-end">
       {toasts.map((t) => {
         const { icon: Icon, cls } = STYLES[t.type];
         return (

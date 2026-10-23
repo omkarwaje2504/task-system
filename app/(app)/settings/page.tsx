@@ -61,7 +61,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="Make Studio Desk look the way you like. Saved to your account." icon={<PageIcon><Palette /></PageIcon>}
+      <PageHeader title="Settings" subtitle="Make Task System look the way you like. Saved to your account." icon={<PageIcon><Palette /></PageIcon>}
         actions={<button className="btn-ghost" onClick={reset} disabled={!appearance || !Object.keys(appearance).length}><RotateCcw className="h-4 w-4" />Reset to default</button>} />
 
       <div className="grid max-w-5xl gap-3 lg:grid-cols-2">

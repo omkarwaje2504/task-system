@@ -11,9 +11,22 @@ import "./globals.css";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], axes: ["opsz"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
+const DESCRIPTION = "Projects, tasks and design assets for the studio team.";
+
+// Absolute base for share images: APP_URL (e.g. https://desk.example.com), else Vercel's production URL.
+const siteUrl = process.env.APP_URL
+  || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+
+// Icons, the share image and the manifest come from app/icon.svg, apple-icon.tsx,
+// opengraph-image.tsx, twitter-image.tsx and manifest.ts.
 export const metadata: Metadata = {
-  title: { default: "Studio Desk", template: "%s · Studio Desk" },
-  description: "Projects, tasks and design assets for the studio team.",
+  metadataBase: new URL(siteUrl),
+  title: { default: "Task System", template: "%s · Task System" },
+  description: DESCRIPTION,
+  applicationName: "Task System",
+  openGraph: { type: "website", siteName: "Task System", title: "Task System", description: DESCRIPTION, url: "/" },
+  twitter: { card: "summary_large_image", title: "Task System", description: DESCRIPTION },
+  appleWebApp: { capable: true, title: "Task System", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {

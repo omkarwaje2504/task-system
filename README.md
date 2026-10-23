@@ -1,4 +1,4 @@
-# Studio Desk
+# Task System
 
 Projects, tasks and the design library for the studio team. Built with Next.js 16 (App Router), MongoDB and Cloudflare R2.
 

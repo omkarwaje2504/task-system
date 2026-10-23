@@ -15,7 +15,7 @@ import AccountModal from "./AccountModal";
 import { AppearanceSync } from "@/components/settings/useAppearance";
 import TabIcon, { type TabIconName } from "./TabIcon";
 
-export const APP_NAME = "Studio Desk";
+export const APP_NAME = "Task System";
 
 type NavItem = { href: string; label: string; icon: ReactNode; match?: (p: string) => boolean };
 
@@ -179,7 +179,7 @@ function BottomNav({ onMore }: { onMore: () => void }) {
           </Link>
         );
       })}
-      <button onClick={onMore} className="tap flex flex-1 flex-col items-center gap-0.5 rounded-[26px] py-1.5 text-[0.625rem] font-semibold text-muted lg:hidden">
+      <button onClick={onMore} className="tap flex flex-1 flex-col items-center gap-0.5 rounded-[26px] py-1.5 text-[0.625rem] font-semibold text-muted">
         <TabIcon name="more" />
         More
       </button>
@@ -234,12 +234,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <main className="px-3 pt-3 pb-28 sm:px-5 lg:ml-[232px] lg:px-6 lg:pt-5">
+      <main className="px-3 pt-3 pb-28 sm:px-5 lg:ml-[232px] lg:px-6 lg:pt-5 lg:pb-8">
         <div className="mx-auto max-w-[1440px]"><Suspense fallback={<PageSkeleton />}>{children}</Suspense></div>
       </main>
 
-      {/* Floating tab bar, iOS style — on every screen; centred over the content area on desktop */}
-      <nav className="glass fixed bottom-[max(12px,env(safe-area-inset-bottom))] left-1/2 z-30 flex w-[calc(100%-24px)] max-w-[440px] -translate-x-1/2 gap-0.5 rounded-[30px] p-1 lg:left-[calc(50%+116px)] lg:max-w-[380px]">
+      {/* Floating tab bar, iOS style — phones and tablets only (desktop has the sidebar) */}
+      <nav className="glass fixed bottom-[max(12px,env(safe-area-inset-bottom))] left-1/2 z-30 flex w-[calc(100%-24px)] max-w-[440px] -translate-x-1/2 gap-0.5 rounded-[30px] p-1 lg:hidden">
         <Suspense fallback={null}><BottomNav onMore={() => setDrawer(true)} /></Suspense>
       </nav>
     </div>
