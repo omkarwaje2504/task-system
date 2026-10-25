@@ -3,13 +3,13 @@
 import { useState, type HTMLAttributes, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, CircleDot, Hand, Star, X } from "lucide-react";
+import { Check, ChevronRight, CircleDot, Hand, Star, X } from "lucide-react";
 import TypeIcon from "@/components/ui/TypeIcon";
 import { Avatar, DeadlineBadge, ProgressBar, SortTh, useSort } from "@/components/ui/bits";
 import { useUserName } from "@/components/ui/UserPicker";
 import { api, refresh, useMe } from "@/lib/client";
 import { toast, toastError } from "@/lib/toast";
-import { countSummary, projectProgress, stepPeople, workingStep, type CountSummary, type ProjectStep } from "@/lib/workflow";
+import { checklistStatus, countSummary, projectProgress, stepPeople, workingStep, type CountSummary, type ProjectStep } from "@/lib/workflow";
 import type { Project } from "@/lib/types";
 
 export function projectTitle(p: Pick<Project, "brand" | "theme" | "legacyName" | "type">) {
@@ -87,6 +87,29 @@ export function CurrentStep({ steps, status, nameOf }: { steps: ProjectStep[]; s
   );
 }
 
+/** Checklist column: the last item ticked and the next one to do. */
+export function ChecklistCell({ p }: { p: Project }) {
+  const { done, total, last, next } = checklistStatus(p.type?.checklistOn ? p.checklist : []);
+  if (!total) return <span className="text-muted">—</span>;
+  return (
+    <span className="flex min-w-0 flex-col leading-tight" title={`${done} of ${total} checklist items done`}>
+      <span className="flex min-w-0 items-center gap-1 text-[0.6875rem] text-muted">
+        <span className="shrink-0 font-semibold tabular-nums">{done}/{total}</span>
+        {last && <><Check className="h-3 w-3 shrink-0 text-accent" /><span className="truncate">{last.title}</span></>}
+      </span>
+      {next
+        ? <span className="truncate font-medium"><span className="text-[0.6875rem] font-normal text-muted">Next: </span>{next.title}</span>
+        : <span className="text-[0.6875rem] font-semibold text-accent">All ticked</span>}
+    </span>
+  );
+}
+
+export function checklistText(p: Project) {
+  const { done, total, next } = checklistStatus(p.type?.checklistOn ? p.checklist : []);
+  if (!total) return "";
+  return `☑ ${done}/${total}${next ? ` · Next: ${next.title}` : " · all ticked"}`;
+}
+
 /**
  * "I'm doing": marks the project's working step (its latest open step — see
  * workingStep) as in progress and puts you on it, so the dashboard shows it.
@@ -162,7 +185,7 @@ export function StarButton({ p, size = "sm" }: { p: Project; size?: "sm" | "md" 
 export const priorityFirst = <T extends { priority?: boolean }>(list: T[]) => [...list.filter((x) => x.priority), ...list.filter((x) => !x.priority)];
 
 const SORT_LABELS: Record<string, string> = {
-  name: "Project", type: "Type", company: "Company", progress: "Progress", step: "Current step", count: "Count", deadline: "Deadline", todo: "To do",
+  name: "Project", type: "Type", company: "Company", progress: "Progress", step: "Current step", checklist: "Checklist", count: "Count", deadline: "Deadline", todo: "To do",
 };
 
 /** Desktop: sortable table, whole row clickable. */
@@ -180,6 +203,10 @@ export function ProjectsTable({ projects, showType = true, rowProps }: {
     company: (p) => p.company?.name,
     progress: (p) => projectProgress(p.steps).pct,
     step: (p) => workingStep(p.steps)?.title,
+    checklist: (p) => {
+      const c = checklistStatus(p.type?.checklistOn ? p.checklist : []);
+      return c.total ? c.done / c.total : -1;
+    },
     count: (p) => {
       const c = countSummary(p.steps);
       return c ? (c.kind === "quantity" ? c.completed : c.done) : -1;
@@ -189,6 +216,7 @@ export function ProjectsTable({ projects, showType = true, rowProps }: {
   }, "projects");
   const sorted = priorityFirst(bySort);
   const showCount = projects.some((p) => countSummary(p.steps));
+  const showChecklist = projects.some((p) => p.type?.checklistOn && p.checklist?.length);
 
   return (
     <>
@@ -219,7 +247,8 @@ export function ProjectsTable({ projects, showType = true, rowProps }: {
             <SortTh label="Progress" k="progress" sort={sort} onSort={toggle} className="w-40" />
             <SortTh label="Current step" k="step" sort={sort} onSort={toggle} />
             <th className="w-0" />
-            {showCount && <SortTh label="Count" k="count" sort={sort} onSort={toggle} />}
+            {showChecklist && <SortTh label="Checklist" k="checklist" sort={sort} onSort={toggle} />}
+            {showCount &&<SortTh label="Count" k="count" sort={sort} onSort={toggle} />}
             <SortTh label="Deadline" k="deadline" sort={sort} onSort={toggle} />
             <SortTh label="To do" k="todo" sort={sort} onSort={toggle} className="text-right" />
             <th>Status</th>
@@ -251,6 +280,7 @@ export function ProjectsTable({ projects, showType = true, rowProps }: {
                 </td>
                 <td className="max-w-56"><CurrentStep steps={p.steps} status={p.status} nameOf={nameOf} /></td>
                 <td className="w-0" onClick={(e) => e.stopPropagation()}><DoingButton p={p} /></td>
+                {showChecklist && <td className="max-w-52"><ChecklistCell p={p} /></td>}
                 {showCount && <td className="whitespace-nowrap"><CountCell c={countSummary(p.steps)} /></td>}
                 <td>{p.deadline ? <DeadlineBadge date={p.deadline} done={p.status === "completed"} /> : <span className="text-muted">—</span>}</td>
                 <td className="text-right tabular-nums">{total - done || <span className="text-muted">0</span>}</td>
@@ -271,6 +301,7 @@ export default function ProjectCard({ p }: { p: Project }) {
   const { done, total, pct } = projectProgress(p.steps);
   const current = workingStep(p.steps);
   const count = countText(countSummary(p.steps));
+  const checks = checklistText(p);
   return (
     <div className="flex items-center gap-1 border-b border-line/70 pr-3 pl-1 last:border-0">
       <StarButton p={p} />
@@ -286,6 +317,7 @@ export default function ProjectCard({ p }: { p: Project }) {
             {current && p.status !== "completed" ? ` · ${current.status === "doing" ? "Now" : "Next"}: ${current.title}` : ""}
           </p>
           {count && <p className="truncate text-[0.6875rem] font-semibold text-fg/80 tabular-nums">{count}</p>}
+          {checks && <p className="truncate text-[0.6875rem] text-muted">{checks}</p>}
           {/* No hover on phones: the current step's details stand in for the hover card. */}
           {current?.note && p.status !== "completed" && <p className="truncate text-[0.6875rem] text-muted">{current.note}</p>}
           {total > 0 && (

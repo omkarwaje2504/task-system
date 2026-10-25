@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Blocks, FolderKanban, Images, Plus, Settings2, Trash, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Blocks, FolderKanban, Images, ListChecks, Plus, Settings2, Square, Trash } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import TypeIcon, { TYPE_ICONS } from "@/components/ui/TypeIcon";
 import { EmptyState, Field, PageHeader, PageIcon, SearchInput, TableSkeleton } from "@/components/ui/bits";
 import { api, refresh, useMe, useTypes } from "@/lib/client";
 import { confirmDialog, promptDialog } from "@/lib/confirm";
 import { toast, toastError } from "@/lib/toast";
-import { STEP_KINDS, uid, type StepKind, type StepTemplate } from "@/lib/workflow";
+import { STEP_KINDS, uid, type ChecklistTemplate, type StepKind, type StepTemplate } from "@/lib/workflow";
 import type { ProductTypeDoc } from "@/lib/types";
 
 function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -20,29 +20,32 @@ function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
   );
 }
 
+function swap<T>(list: T[], i: number, d: number) {
+  if (i + d < 0 || i + d >= list.length) return list;
+  const n = [...list];
+  [n[i], n[i + d]] = [n[i + d], n[i]];
+  return n;
+}
+
 function EditTypeModal({ type, onClose }: { type: ProductTypeDoc; onClose: () => void }) {
   const [name, setName] = useState(type.name);
   const [icon, setIcon] = useState(type.icon);
   const [special, setSpecial] = useState(type.special);
   const [assetTab, setAssetTab] = useState(type.assetTab);
   const [modules, setModules] = useState(!!type.modules);
-  const [slots, setSlots] = useState<string[]>(type.assetSlots?.length ? type.assetSlots : ["Cover", "Front", "Back"]);
-  const [slotDraft, setSlotDraft] = useState("");
   const [steps, setSteps] = useState<StepTemplate[]>(type.steps || []);
+  const [checklist, setChecklist] = useState<ChecklistTemplate[]>(type.checklist || []);
+  const [checklistOn, setChecklistOn] = useState(!!type.checklistOn);
   const [saving, setSaving] = useState(false);
 
   const updateStep = (id: string, patch: Partial<StepTemplate>) => setSteps((s) => s.map((x) => (x.id === id ? { ...x, ...patch } : x)));
-  const move = (i: number, d: number) => setSteps((s) => {
-    const n = [...s];
-    if (i + d < 0 || i + d >= n.length) return s;
-    [n[i], n[i + d]] = [n[i + d], n[i]];
-    return n;
-  });
+  const move = (i: number, d: number) => setSteps((s) => swap(s, i, d));
+  const moveCheck = (i: number, d: number) => setChecklist((c) => swap(c, i, d));
 
   async function save() {
     setSaving(true);
     try {
-      await api(`/api/product-types/${type._id}`, { method: "PUT", body: { name, icon, special, assetTab, modules, assetSlots: slots, steps } });
+      await api(`/api/product-types/${type._id}`, { method: "PUT", body: { name, icon, special, assetTab, modules, steps, checklist, checklistOn } });
       toast.success("Product type saved. New projects will use this template.");
       refresh("/api/product-types");
       onClose();
@@ -85,19 +88,12 @@ function EditTypeModal({ type, onClose }: { type: ProductTypeDoc; onClose: () =>
           <span className="flex-1"><span className="block text-[0.8125rem] font-semibold">Modules (IT projects)</span><span className="text-[0.6875rem] text-muted">Group a project&apos;s tasks into modules — pages, parts or sections of an app or website</span></span>
           <Switch on={modules} onChange={setModules} label="Modules" />
         </label>
+        <label className="flex items-center gap-2.5 rounded-lg border border-line px-2.5 py-2 sm:col-span-2">
+          <ListChecks className="h-4 w-4 text-accent" />
+          <span className="flex-1"><span className="block text-[0.8125rem] font-semibold">Checklist</span><span className="text-[0.6875rem] text-muted">Tick boxes in a panel on the right of every project of this type</span></span>
+          <Switch on={checklistOn} onChange={setChecklistOn} label="Checklist" />
+        </label>
       </div>
-
-      {assetTab && (
-        <Field label="Image slots for each design" help="e.g. Cover, Front, Back. Each design in the library gets one upload box per slot.">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {slots.map((s) => (
-              <span key={s} className="chip bg-panel2 !py-1">{s}<button onClick={() => setSlots(slots.filter((x) => x !== s))} aria-label={`Remove ${s}`}><X className="h-3 w-3" /></button></span>
-            ))}
-            <input className="input !w-32 !py-1 !text-xs" placeholder="+ Add slot" value={slotDraft} onChange={(e) => setSlotDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && slotDraft.trim() && !slots.includes(slotDraft.trim())) { setSlots([...slots, slotDraft.trim()]); setSlotDraft(""); } }} />
-          </div>
-        </Field>
-      )}
 
       <div className="mb-1 flex items-center justify-between">
         <p className="label !mb-0">Project template — steps</p>
@@ -125,6 +121,29 @@ function EditTypeModal({ type, onClose }: { type: ProductTypeDoc; onClose: () =>
         {!steps.length && <p className="px-3 py-3 text-center text-xs text-muted">No steps = projects of this type are tracked with tasks only.</p>}
       </div>
       <button className="btn-soft btn-sm mt-1.5" onClick={() => setSteps([...steps, { id: uid(), title: "", kind: "check", hint: "" }])}><Plus className="h-3 w-3" />Add step</button>
+
+      {checklistOn && <>
+      <div className="mt-4 mb-1 flex items-center justify-between">
+        <p className="label !mb-0 flex items-center gap-1.5"><ListChecks className="h-3.5 w-3.5 text-accent" />Checklist</p>
+        <span className="text-[0.6875rem] text-muted">Tick boxes every new project gets</span>
+      </div>
+      <div className="overflow-hidden rounded-lg border border-line">
+        {checklist.map((item, i) => (
+          <div key={item.id} className="flex items-center gap-1.5 border-b border-line/70 px-2 py-1.5 last:border-0">
+            <Square className="h-3.5 w-3.5 shrink-0 text-muted" />
+            <input className="input" value={item.title} placeholder="e.g. Size confirmed"
+              onChange={(e) => setChecklist(checklist.map((x) => (x.id === item.id ? { ...x, title: e.target.value } : x)))} />
+            <span className="flex shrink-0">
+              <button className="icon-btn !h-7 !w-7" onClick={() => moveCheck(i, -1)} disabled={i === 0} aria-label="Move up"><ArrowUp className="h-3.5 w-3.5" /></button>
+              <button className="icon-btn !h-7 !w-7" onClick={() => moveCheck(i, 1)} disabled={i === checklist.length - 1} aria-label="Move down"><ArrowDown className="h-3.5 w-3.5" /></button>
+              <button className="icon-btn !h-7 !w-7 hover:!text-danger" onClick={() => setChecklist(checklist.filter((x) => x.id !== item.id))} aria-label="Remove item"><Trash className="h-3.5 w-3.5" /></button>
+            </span>
+          </div>
+        ))}
+        {!checklist.length && <p className="px-3 py-3 text-center text-xs text-muted">Add the items — the panel shows on projects once there&apos;s at least one.</p>}
+      </div>
+      <button className="btn-soft btn-sm mt-1.5" onClick={() => setChecklist([...checklist, { id: uid(), title: "" }])}><Plus className="h-3 w-3" />Add checklist item</button>
+      </>}
     </Modal>
   );
 }
@@ -135,13 +154,14 @@ export default function ProductTypesPage() {
   const [editing, setEditing] = useState<ProductTypeDoc | null>(null);
   const [q, setQ] = useState("");
 
-  async function quickToggle(t: ProductTypeDoc, field: "special" | "assetTab" | "modules", value: boolean) {
+  async function quickToggle(t: ProductTypeDoc, field: "special" | "assetTab" | "modules" | "checklistOn", value: boolean) {
     try {
       await api(`/api/product-types/${t._id}`, { method: "PUT", body: { [field]: value } });
       await refresh("/api/product-types");
       toast.success(
         field === "special" ? (value ? `${t.name} now has its own Projects tab.` : `${t.name} moved to “Others”.`)
         : field === "modules" ? (value ? `${t.name} projects now group tasks into modules.` : `${t.name} projects show one plain step list.`)
+        : field === "checklistOn" ? (value ? (t.checklist?.length ? `${t.name} projects now show the checklist.` : `Checklist on — press Edit to add ${t.name}'s items.`) : `${t.name} checklist hidden.`)
         : (value ? `${t.name} designs tab added to Assets.` : `${t.name} removed from Assets.`),
       );
     } catch (e) {
@@ -192,6 +212,7 @@ export default function ProductTypesPage() {
                 <th className="!text-center">Projects tab</th>
                 <th className="!text-center">Asset tab</th>
                 <th className="!text-center">Modules</th>
+                <th className="!text-center">Checklist</th>
                 <th className="hidden sm:table-cell">Template</th>
                 <th />
               </tr>
@@ -207,7 +228,8 @@ export default function ProductTypesPage() {
                   <td><span className="flex justify-center"><Switch on={t.special} onChange={(v) => quickToggle(t, "special", v)} label={`${t.name} projects tab`} /></span></td>
                   <td><span className="flex justify-center"><Switch on={t.assetTab} onChange={(v) => quickToggle(t, "assetTab", v)} label={`${t.name} asset tab`} /></span></td>
                   <td><span className="flex justify-center"><Switch on={!!t.modules} onChange={(v) => quickToggle(t, "modules", v)} label={`${t.name} modules`} /></span></td>
-                  <td className="hidden text-xs text-muted sm:table-cell">{t.steps.length ? `${t.steps.length} steps` : "Tasks only"}</td>
+                  <td><span className="flex justify-center"><Switch on={!!t.checklistOn} onChange={(v) => quickToggle(t, "checklistOn", v)} label={`${t.name} checklist`} /></span></td>
+                  <td className="hidden text-xs text-muted sm:table-cell">{[t.steps.length ? `${t.steps.length} steps` : "Tasks only", t.checklistOn && t.checklist?.length ? `${t.checklist.length}-item checklist` : ""].filter(Boolean).join(" · ")}</td>
                   <td className="w-24 !px-1">
                     <div className="flex justify-end gap-0.5">
                       <button className="btn-ghost btn-sm" onClick={() => setEditing(t)}>Edit</button>

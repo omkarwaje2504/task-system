@@ -4,14 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft, Building, CircleCheck, CirclePause, CirclePlay, Eye, EyeOff, ListPlus, Pencil, PartyPopper, Plus, SlidersHorizontal, Trash, type LucideIcon,
+  ArrowLeft, Building, CircleCheck, CirclePause, CirclePlay, Eye, EyeOff, ListPlus, Pencil, PartyPopper, Plus, SlidersHorizontal, Trash, Users, type LucideIcon,
 } from "lucide-react";
 import TypeIcon from "@/components/ui/TypeIcon";
 import Modal from "@/components/ui/Modal";
 import { DeadlineBadge, EmptyState, Field, ProgressRing, Skeleton } from "@/components/ui/bits";
 import StepCard, { StepsHeader, type StepPatch } from "@/components/projects/StepCard";
 import BrandCompanyFields from "@/components/projects/BrandCompanyFields";
+import DepartmentPicker, { useProjectDepartments } from "@/components/projects/DepartmentPicker";
 import FilesPanel from "@/components/projects/FilesPanel";
+import ChecklistPanel, { showsChecklist } from "@/components/projects/ChecklistPanel";
 import ModulesBoard, { GENERAL, moduleGroups } from "@/components/projects/ModulesBoard";
 import { StarButton, projectTitle } from "@/components/projects/ProjectCard";
 import { UserMultiSelect } from "@/components/ui/UserPicker";
@@ -37,13 +39,14 @@ function EditProjectModal({ p, onClose, onSaved }: { p: Project; onClose: () => 
   const [company, setCompany] = useState(p.company?.name || "");
   const [brand, setBrand] = useState(p.brand?.name || "");
   const [deadline, setDeadline] = useState(p.deadline || "");
+  const [departments, setDepartments] = useState<string[]>(p.departments || []);
   const [notes, setNotes] = useState(p.notes || "");
   const [saving, setSaving] = useState(false);
 
   async function save() {
     setSaving(true);
     try {
-      const next = await api<Project>(`/api/projects/${p._id}`, { method: "PUT", body: { theme, companyName: company, brandName: brand, deadline: deadline || null, notes, ...(typeId && typeId !== p.type?._id ? { productType: typeId, addTemplateSteps: addTemplate } : {}) } });
+      const next = await api<Project>(`/api/projects/${p._id}`, { method: "PUT", body: { theme, companyName: company, brandName: brand, departments, deadline: deadline || null, notes, ...(typeId && typeId !== p.type?._id ? { productType: typeId, addTemplateSteps: addTemplate } : {}) } });
       toast.success("Project updated.");
       refresh("/api/brands", "/api/companies", "/api/projects?");
       onSaved(next);
@@ -85,6 +88,7 @@ function EditProjectModal({ p, onClose, onSaved }: { p: Project; onClose: () => 
       })()}
       <Field label="Theme" optional><input className="input" value={theme} onChange={(e) => setTheme(e.target.value)} /></Field>
       <BrandCompanyFields company={company} brand={brand} onCompany={setCompany} onBrand={setBrand} />
+      <Field label="Departments" optional><DepartmentPicker value={departments} onChange={setDepartments} /></Field>
       <Field label="Deadline" optional><input type="date" className="input !w-auto" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></Field>
       <Field label="Notes" optional><textarea className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
     </Modal>
@@ -144,6 +148,7 @@ export default function ProjectPage() {
   const router = useRouter();
   const { data: me } = useMe();
   const { data: p, mutate, error } = useApi<Project>(`/api/projects/${id}`);
+  const departments = useProjectDepartments(p || {});
   const [editing, setEditing] = useState(false);
   const [addingStep, setAddingStep] = useState<string | null>(null);
   const [editStep, setEditStep] = useState<ProjectStep | null>(null);
@@ -165,6 +170,7 @@ export default function ProjectPage() {
   // IT projects (type switch "Modules"): tasks are grouped into modules.
   const useModules = !!p.type?.modules;
   const moduleNames = useModules ? moduleGroups(p).map((g) => g.name).filter((n) => n !== GENERAL) : undefined;
+  const checklist = showsChecklist(p) && <ChecklistPanel p={p} onChange={(next) => mutate(next, { revalidate: false })} />;
   const stepCard = (s: ProjectStep, i: number) => (
     <StepCard key={s.id} step={s} index={i} projectId={p._id}
       isCurrent={p.status !== "completed" && current?.id === s.id}
@@ -259,6 +265,7 @@ export default function ProjectPage() {
               <div className="mt-1 flex flex-wrap items-center gap-1">
                 <span className="chip bg-accent-soft text-accent">{p.type?.name}</span>
                 {p.company?.name && <span className="chip bg-panel2 text-muted"><Building className="h-3 w-3" />{p.company.name}</span>}
+                {departments.map((d) => <span key={d._id} className="chip bg-panel2 text-muted"><Users className="h-3 w-3" />{d.name}</span>)}
                 <DeadlineBadge date={p.deadline} done={p.status === "completed"} />
                 {p.legacyName && <span className="chip bg-panel2 text-muted" title="Name in the old system">Was: {p.legacyName}</span>}
               </div>
@@ -291,7 +298,10 @@ export default function ProjectPage() {
         </div>
       )}
 
-      <div>
+      {/* With a checklist: steps on the left, checklist on the right (above the steps on narrower screens). */}
+      <div className={checklist ? "flex flex-col gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start" : ""}>
+        {checklist && <div className="xl:col-start-2 xl:row-start-1">{checklist}</div>}
+        <div className="min-w-0 xl:col-start-1 xl:row-start-1">
         {/* Steps — these are the project's tasks too */}
         <section>
           <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -340,6 +350,7 @@ export default function ProjectPage() {
         <p className="mt-3 px-1 text-[0.6875rem] text-muted">
           Created by {p.createdByName || "someone"} · {fmtDate(p.createdAt, { day: "numeric", month: "short", year: "numeric" })}
         </p>
+        </div>
       </div>
 
       {editing && <EditProjectModal p={p} onClose={() => setEditing(false)} onSaved={(next) => mutate(next, { revalidate: false })} />}

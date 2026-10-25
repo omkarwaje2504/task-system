@@ -12,7 +12,7 @@ export const PROJECT_LOOKUPS: Document[] = [
   { $unwind: { path: "$company", preserveNullAndEmptyArrays: true } },
 ];
 
-export const TYPE_FIELDS = { "type._id": 1, "type.name": 1, "type.slug": 1, "type.icon": 1, "type.special": 1 };
+export const TYPE_FIELDS = { "type._id": 1, "type.name": 1, "type.slug": 1, "type.icon": 1, "type.special": 1, "type.checklistOn": 1 };
 
 export async function getProject(db: Db, id: ObjectId) {
   const [p] = await db.collection("projects").aggregate([

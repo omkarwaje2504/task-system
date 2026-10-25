@@ -1,4 +1,4 @@
-import type { ProjectStep, StepTemplate } from "./workflow";
+import type { ChecklistItem, ChecklistTemplate, ProjectStep, StepTemplate } from "./workflow";
 
 export type Me = { id: string; name: string; role: "admin" | "member"; email: string };
 
@@ -15,13 +15,15 @@ export type User = {
   lastLoginAt?: string;
 };
 
-export type TypeRef = { _id: string; name: string; slug: string; icon: string; special?: boolean; /** Steps grouped into modules (IT projects). */ modules?: boolean };
+export type TypeRef = { _id: string; name: string; slug: string; icon: string; special?: boolean; /** Steps grouped into modules (IT projects). */ modules?: boolean; checklist?: ChecklistTemplate[]; /** Checklist switched on (shown only if it also has items). */ checklistOn?: boolean };
 
 export type ProductTypeDoc = TypeRef & {
   special: boolean;
   assetTab: boolean;
   assetSlots: string[];
   steps: StepTemplate[];
+  /** Optional tick boxes every new project of this type starts with. */
+  checklist?: ChecklistTemplate[];
   order: number;
   modules?: boolean;
 };
@@ -42,7 +44,11 @@ export type Project = {
   convertedAt?: string;
   requestedAt?: string;
   notes?: string;
+  /** Ids of the departments (Video, Graphic, IT…) this project belongs to — optional, any number. */
+  departments?: string[];
   steps: ProjectStep[];
+  /** Tick boxes copied from the product type's checklist. */
+  checklist?: ChecklistItem[];
   /** IT projects: module names in display order (tasks point at them by name). */
   modules?: string[];
   type?: TypeRef;
@@ -64,6 +70,8 @@ export type StepRow = {
   brand?: { name?: string };
   type?: TypeRef;
 };
+
+export type Department = { _id: string; name: string; order: number };
 
 export type Brand = { _id: string; name: string; company?: { _id: string; name: string } };
 export type Company = { _id: string; name: string; brands?: { _id: string; name: string }[] };

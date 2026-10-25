@@ -8,7 +8,7 @@ import { EmptyState, PageHeader, PageIcon, SearchInput, Segmented, TableSkeleton
 import ProjectCard, { ProjectsTable, priorityFirst } from "./ProjectCard";
 import NewProjectModal from "./NewProjectModal";
 import { useProjectHover } from "./ProjectHoverCard";
-import { useApi, useTypes } from "@/lib/client";
+import { useApi, useDepartments, useTypes } from "@/lib/client";
 import type { Project } from "@/lib/types";
 
 const STATUSES: { key: string; label: string }[] = [
@@ -23,9 +23,11 @@ export default function ProjectsView({ typeSlug }: { typeSlug: string }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const { data: types = [] } = useTypes();
+  const { data: departments = [] } = useDepartments();
   const [status, setStatus] = useState("active");
   const [q, setQ] = useState("");
   const [subType, setSubType] = useState<string | null>(null);
+  const [department, setDepartment] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const hover = useProjectHover();
 
@@ -46,9 +48,10 @@ export default function ProjectsView({ typeSlug }: { typeSlug: string }) {
     const term = q.trim().toLowerCase();
     return (projects || []).filter((p) =>
       (!subType || p.type?._id === subType) &&
+      (!department || !!p.departments?.includes(department)) &&
       (!term || [p.theme, p.brand?.name, p.company?.name, p.type?.name, p.legacyName].some((v) => v?.toLowerCase().includes(term))),
     );
-  }, [projects, q, subType]);
+  }, [projects, q, subType, department]);
 
   // In "Others", let people narrow down by product type.
   const otherTypes = useMemo(() => {
@@ -85,6 +88,21 @@ export default function ProjectsView({ typeSlug }: { typeSlug: string }) {
         <Segmented items={STATUSES} value={status} onChange={setStatus} />
         {projects && <span className="text-xs text-muted sm:ml-auto">{shown.length} project{shown.length === 1 ? "" : "s"}</span>}
       </div>
+
+      {departments.length > 0 && (
+        <div className="no-scrollbar -mx-3 mb-3 flex gap-1 overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:px-0">
+          <button onClick={() => setDepartment(null)} className={`chip shrink-0 ${!department ? "bg-accent text-[var(--accent-fg)]" : "bg-panel2 text-muted"}`}>All departments</button>
+          {departments.map((d) => {
+            const n = (projects || []).filter((p) => p.departments?.includes(d._id)).length;
+            return (
+              <button key={d._id} onClick={() => setDepartment(department === d._id ? null : d._id)}
+                className={`chip shrink-0 ${department === d._id ? "bg-accent text-[var(--accent-fg)]" : "bg-panel2 text-muted hover:text-fg"}`}>
+                {d.name} <span className="opacity-60">{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {otherTypes.length > 1 && (
         <div className="no-scrollbar -mx-3 mb-3 flex gap-1 overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:px-0">

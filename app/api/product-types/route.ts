@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const now = new Date();
   const doc = {
     name: clean, slug, icon: "box", special: false, assetTab: false, modules: false,
-    assetSlots: ["Cover", "Front", "Back"], steps: [], order: count, deleted: false, createdAt: now, updatedAt: now,
+    assetSlots: ["Cover", "Front", "Back"], steps: [], checklist: [], checklistOn: false, order: count, deleted: false, createdAt: now, updatedAt: now,
   };
   const { insertedId } = await db.collection("productTypes").insertOne(doc);
   return NextResponse.json({ _id: insertedId, ...doc });

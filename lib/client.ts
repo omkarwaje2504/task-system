@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
-import type { Brand, Me, Printer, ProductTypeDoc, User } from "./types";
+import type { Brand, Department, Me, Printer, ProductTypeDoc, User } from "./types";
 
 export class ApiError extends Error {
   status: number;
@@ -44,6 +44,7 @@ export const useUsers = () => useApi<User[]>("/api/users");
 export const useTypes = () => useApi<ProductTypeDoc[]>("/api/product-types");
 export const usePrinters = () => useApi<Printer[]>("/api/printers");
 export const useBrands = () => useApi<Brand[]>("/api/brands");
+export const useDepartments = () => useApi<Department[]>("/api/departments");
 
 /** Revalidate every cached key that starts with one of these prefixes. */
 export function refresh(...prefixes: string[]) {

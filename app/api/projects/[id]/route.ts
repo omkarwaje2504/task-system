@@ -4,7 +4,8 @@ import { bad, requireUser } from "@/lib/auth";
 import { resolveBrand, resolveCompany } from "@/lib/clients";
 import { logActivity } from "@/lib/activity";
 import { getProject } from "@/lib/projects";
-import { stepsFromTemplate, type StepTemplate } from "@/lib/workflow";
+import { cleanDepartments } from "@/lib/departments";
+import { checklistFromTemplate, stepsFromTemplate, type ChecklistItem, type ChecklistTemplate, type StepTemplate } from "@/lib/workflow";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -32,6 +33,7 @@ export async function PUT(req: Request, { params }: Ctx) {
   if (b.theme !== undefined) set.theme = String(b.theme).trim();
   if (b.notes !== undefined) set.notes = String(b.notes).trim();
   if (b.deadline !== undefined) set.deadline = b.deadline || null;
+  if (b.departments !== undefined) set.departments = await cleanDepartments(db, b.departments);
   // ★ Priority: shared for the whole team; starred projects stay at the top of lists.
   if (typeof b.priority === "boolean" && b.priority !== !!existing.priority) {
     set.priority = b.priority;
@@ -47,6 +49,10 @@ export async function PUT(req: Request, { params }: Ctx) {
       const extra = stepsFromTemplate(((type.steps || []) as StepTemplate[]).filter((t) => !have.has(t.title.trim().toLowerCase())));
       set.steps = [...(existing.steps || []), ...extra];
     }
+    // Ticks already made stay; the new type's checklist items the project doesn't have are added.
+    const haveCheck = new Set((existing.checklist || []).map((c: ChecklistItem) => c.title.trim().toLowerCase()));
+    const newChecks = (type.checklistOn ? (type.checklist || []) as ChecklistTemplate[] : []).filter((c) => !haveCheck.has(c.title.trim().toLowerCase()));
+    if (newChecks.length) set.checklist = [...(existing.checklist || []), ...checklistFromTemplate(newChecks)];
     await logActivity(db, s, "project.type", `changed the type to ${type.name}`, { project: existing._id });
   }
   if (b.companyName !== undefined || b.brandName !== undefined) {

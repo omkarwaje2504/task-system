@@ -45,7 +45,37 @@ export type ProjectStep = StepTemplate & {
   module?: string;
 };
 
-export const cleanModule = (v: unknown) => String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
+/**
+ * Checklist: plain tick boxes, separate from steps (no people, dates or
+ * panels). A product type may define one (e.g. Calendar: Size confirmed →
+ * Sent for printing); every new project of that type gets its own copy.
+ */
+export type ChecklistTemplate = { id: string; title: string };
+export type ChecklistItem = ChecklistTemplate & { done: boolean; doneAt: string | null; doneByName: string | null };
+
+export const checklistFromTemplate = (tpl: ChecklistTemplate[] = []): ChecklistItem[] =>
+  tpl.map((t) => ({ id: uid(), title: t.title, done: false, doneAt: null, doneByName: null }));
+
+export function cleanChecklistTemplate(v: unknown): ChecklistTemplate[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((c) => c && String(c.title || "").trim())
+    .map((c) => ({ id: typeof c.id === "string" && c.id ? c.id : uid(), title: String(c.title).trim().slice(0, 120) }))
+    .slice(0, 40);
+}
+
+/** A type uses its checklist only when switched on and it has items. */
+export const checklistEnabled = (t?: { checklistOn?: boolean; checklist?: ChecklistTemplate[] } | null) =>
+  !!t?.checklistOn && !!t.checklist?.length;
+
+/** For lists: how far through, the last item ticked, and the next one to do (first unticked, in order). */
+export function checklistStatus(items: ChecklistItem[] = []) {
+  const ticked = items.filter((c) => c.done);
+  const last = ticked.reduce<ChecklistItem | null>((a, b) => (!a || (b.doneAt || "") > (a.doneAt || "") ? b : a), null);
+  return { done: ticked.length, total: items.length, last, next: items.find((c) => !c.done) || null };
+}
+
+export const cleanModule =(v: unknown) => String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
 
 /** A step's people (older steps stored a single `assignee`). */
 export function stepPeople(step: Pick<ProjectStep, "assignees"> & { assignee?: string | null }): string[] {
@@ -183,10 +213,20 @@ export type ProductType = {
   assetTab: boolean;
   assetSlots: string[];
   steps: StepTemplate[];
+  checklist?: ChecklistTemplate[];
+  checklistOn?: boolean;
   order: number;
 };
 
-const s = (title: string, kind: StepKind, hint = ""): StepTemplate => ({ id: uid(), title, kind, hint });
+const c = (...titles: string[]): ChecklistTemplate[] => titles.map((title) => ({ id: uid(), title }));
+
+/** Calendar's checklist — also seeded into an existing Calendar type that has none. */
+export const CALENDAR_CHECKLIST = [
+  "Size confirmed", "Design confirmed", "Envelope design confirmed", "Sample created",
+  "Vendor confirmed", "Production files ready", "Sent for printing",
+];
+
+const s =(title: string, kind: StepKind, hint = ""): StepTemplate => ({ id: uid(), title, kind, hint });
 
 const VIDEO_STEPS = (makeLabel: string) => [
   s("Storyboard & script received", "check", "Collect the storyboard and script from the client."),
@@ -227,6 +267,7 @@ export const DEFAULT_TYPES: Omit<ProductType, "_id" | "slug" | "order">[] = [
       s("Printing", "printer"),
       s("Delivered", "check"),
     ],
+    checklist: c(...CALENDAR_CHECKLIST), checklistOn: true,
   },
   {
     name: "Frame", icon: "frame", special: true, assetTab: true, assetSlots: ["Cover", "Front", "Back"],

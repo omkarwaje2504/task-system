@@ -21,7 +21,7 @@ function Thumb({ file, className = "" }: { file?: AssetFile; className?: string 
         </>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element -- user uploads on an arbitrary R2 domain
-        <img src={file.url} alt={file.slot} loading="lazy" className="h-full w-full object-cover" />
+        <img src={file.url} alt={file.slot || file.name} loading="lazy" className="h-full w-full object-cover" />
       )}
     </span>
   );
@@ -38,7 +38,6 @@ export default function AssetLibrary() {
   const [editing, setEditing] = useState<Asset | null>(null);
   const type = types.find((t) => t.slug === slug);
   const tabs = types.filter((t) => t.assetTab);
-  const slots = type?.assetSlots.length ? type.assetSlots : ["Cover", "Front", "Back"];
 
   const shown = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -93,7 +92,7 @@ export default function AssetLibrary() {
       ) : shown.length === 0 ? (
         <div className="card">
           <EmptyState icon={<Images />} title={q ? "No designs match." : "No designs yet."}
-            hint={q ? undefined : `Add your first ${type?.name} theme with its ${slots.join(", ").toLowerCase()}.`}
+            hint={q ? undefined : `Add your first ${type?.name} theme with its images.`}
             action={!q && <button className="btn-primary" onClick={() => setAdding(true)}><ImagePlus className="h-3.5 w-3.5" />Add design</button>} />
         </div>
       ) : (
@@ -105,7 +104,7 @@ export default function AssetLibrary() {
                 <table className="tbl">
                   <thead>
                     <tr>
-                      {slots.map((s) => <th key={s} className="w-14">{s}</th>)}
+                      <th className="w-24">Images</th>
                       <SortTh label="Theme" k="title" sort={sort} onSort={toggle} />
                       <th>Description</th>
                       <th>Tags</th>
@@ -117,7 +116,12 @@ export default function AssetLibrary() {
                   <tbody>
                     {sorted.map((a) => (
                       <tr key={a._id} className="cursor-pointer" onClick={() => setViewing(a)}>
-                        {slots.map((s) => <td key={s} className="!py-1.5"><Thumb file={a.files.find((f) => f.slot === s)} className="h-12 w-10 rounded" /></td>)}
+                        <td className="!py-1.5">
+                          <span className="flex items-center gap-1.5">
+                            <Thumb file={coverOf(a)} className="h-12 w-10 rounded" />
+                            {a.files.length > 1 && <span className="text-xs text-muted">+{a.files.length - 1}</span>}
+                          </span>
+                        </td>
                         <td className="font-semibold">{a.title}</td>
                         <td className="max-w-72 truncate text-muted">{a.description || "—"}</td>
                         <td className="max-w-48">

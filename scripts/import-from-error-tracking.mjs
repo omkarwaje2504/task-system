@@ -82,7 +82,7 @@ async function ensureType(def, order) {
     const doc = {
       name: def.name, slug, icon: def.icon || "box",
       special: !!def.special, assetTab: !!def.assetTab, assetSlots: def.assetSlots || ["Cover", "Front", "Back"],
-      steps: def.steps || [], order, deleted: false, createdAt: now, updatedAt: now,
+      steps: def.steps || [], checklist: def.checklist || [], checklistOn: !!def.checklistOn, order, deleted: false, createdAt: now, updatedAt: now,
     };
     const { insertedId } = await db.collection("productTypes").insertOne(doc);
     t = { _id: insertedId, ...doc };

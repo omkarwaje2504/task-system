@@ -5,7 +5,8 @@ import { bad, requireUser } from "@/lib/auth";
 import { resolveBrand, resolveCompany } from "@/lib/clients";
 import { logActivity } from "@/lib/activity";
 import { PROJECT_LOOKUPS, TYPE_FIELDS } from "@/lib/projects";
-import { stepsFromTemplate, type StepTemplate } from "@/lib/workflow";
+import { cleanDepartments } from "@/lib/departments";
+import { checklistFromTemplate, stepsFromTemplate, type ChecklistTemplate, type StepTemplate } from "@/lib/workflow";
 
 /**
  * ?type=all | others | <product type slug>
@@ -61,7 +62,7 @@ export async function GET(req: Request) {
         ...TYPE_FIELDS, "brand._id": 1, "brand.name": 1, "company._id": 1, "company.name": 1,
         fileCount: { $ifNull: [{ $arrayElemAt: ["$fileCount.n", 0] }, 0] },
         cover: { $arrayElemAt: ["$cover", 0] },
-        notes: 1,
+        notes: 1, departments: 1, checklist: 1,
       },
     },
     { $sort: status === "completed" ? { completedAt: -1, updatedAt: -1 } : { createdAt: -1 } },
@@ -90,11 +91,14 @@ export async function POST(req: Request) {
     theme: String(b.theme || "").trim(),
     company,
     brand,
+    // Optional, any number: which departments (Video, Graphic, IT…) the project belongs to.
+    departments: await cleanDepartments(db, b.departments),
     deadline: b.deadline || null,
     notes: String(b.notes || "").trim(),
     status: "active",
     // useTemplate: false → start empty and add tasks one by one.
     steps: b.useTemplate === false ? [] : stepsFromTemplate((type.steps || []) as StepTemplate[], { languages }),
+    checklist: type.checklistOn ? checklistFromTemplate((type.checklist || []) as ChecklistTemplate[]) : [],
     createdBy: oid(s.id),
     createdByName: s.name,
     completedAt: null,

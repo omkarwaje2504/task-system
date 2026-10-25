@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB, escapeRegex, isId, notDeleted, oid } from "@/lib/db";
 import { bad, requireAdmin } from "@/lib/auth";
-import { STEP_KINDS, uid, type StepTemplate } from "@/lib/workflow";
+import { STEP_KINDS, cleanChecklistTemplate, uid, type StepTemplate } from "@/lib/workflow";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -42,6 +42,9 @@ export async function PUT(req: Request, { params }: Ctx) {
         kind: st.kind in STEP_KINDS ? st.kind : "check",
       }));
   }
+  // Optional tick-box checklist copied into each new project of this type.
+  if (Array.isArray(body.checklist)) set.checklist = cleanChecklistTemplate(body.checklist);
+  if (body.checklistOn !== undefined) set.checklistOn = !!body.checklistOn;
   await db.collection("productTypes").updateOne({ _id: oid(id) }, { $set: set });
   return NextResponse.json(await db.collection("productTypes").findOne({ _id: oid(id) }));
 }

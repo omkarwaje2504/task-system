@@ -7,9 +7,10 @@ import Modal from "@/components/ui/Modal";
 import TypeIcon from "@/components/ui/TypeIcon";
 import { Field } from "@/components/ui/bits";
 import BrandCompanyFields from "./BrandCompanyFields";
+import DepartmentPicker from "./DepartmentPicker";
 import { api, refresh, todayISO, useTypes } from "@/lib/client";
 import { toast, toastError } from "@/lib/toast";
-import { COMMON_LANGUAGES, STEP_KINDS } from "@/lib/workflow";
+import { COMMON_LANGUAGES, STEP_KINDS, checklistEnabled } from "@/lib/workflow";
 import type { ProductTypeDoc } from "@/lib/types";
 
 const addDays = (n: number) => {
@@ -35,6 +36,7 @@ export default function NewProjectModal({ open, onClose, initialTypeSlug }: { op
   const [company, setCompany] = useState("");
   const [brand, setBrand] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [departments, setDepartments] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [customLang, setCustomLang] = useState("");
   const [notes, setNotes] = useState("");
@@ -72,7 +74,7 @@ export default function NewProjectModal({ open, onClose, initialTypeSlug }: { op
     setSaving(true);
     try {
       const p = await api<{ _id: string }>("/api/projects", {
-        body: { productType: type._id, theme, companyName: company, brandName: brand, deadline: deadline || null, languages, notes, useTemplate },
+        body: { productType: type._id, theme, companyName: company, brandName: brand, departments, deadline: deadline || null, languages, notes, useTemplate },
       });
       toast.success(useTemplate && type.steps.length ? "Project created! Here are its steps." : "Project created! Add its tasks one by one.");
       refresh("/api/projects", "/api/dashboard", "/api/brands", "/api/companies");
@@ -147,6 +149,10 @@ export default function NewProjectModal({ open, onClose, initialTypeSlug }: { op
 
           <BrandCompanyFields company={company} brand={brand} onCompany={setCompany} onBrand={setBrand} />
 
+          <Field label="Departments" optional help="Pick every department working on this project.">
+            <DepartmentPicker value={departments} onChange={setDepartments} />
+          </Field>
+
           <Field label="Deadline" optional>
             <div className="flex flex-wrap items-center gap-1">
               <input type="date" className="input !w-auto" value={deadline} min={todayISO()} onChange={(e) => setDeadline(e.target.value)} />
@@ -209,6 +215,12 @@ export default function NewProjectModal({ open, onClose, initialTypeSlug }: { op
             </div>
           ) : (
             <p className="rounded-lg bg-panel2 px-3 py-2 text-xs text-muted">This product type has no step template — you&apos;ll track it with simple tasks.</p>
+          )}
+          {checklistEnabled(type) && !!type.checklist && (
+            <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-panel2 px-3 py-2 text-xs text-muted">
+              <ListChecks className="mt-px h-3.5 w-3.5 shrink-0 text-accent" />
+              <span>Comes with a {type.checklist.length}-item checklist: {type.checklist.map((c) => c.title).join(" → ")}</span>
+            </p>
           )}
         </div>
       )}

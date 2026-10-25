@@ -5,7 +5,7 @@ export function cleanFiles(v: unknown): AssetFile[] {
   return v
     .filter((f) => f && typeof f.url === "string" && /^https?:\/\//.test(f.url))
     .map((f): AssetFile => ({
-      slot: String(f.slot || "").trim(),
+      slot: String(f.slot || "").trim().slice(0, 80), // the image's title, typed by the user
       url: f.url,
       name: String(f.name || "").slice(0, 200),
       kind: f.kind === "video" ? "video" : f.kind === "file" ? "file" : "image",
