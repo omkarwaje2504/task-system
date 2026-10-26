@@ -9,7 +9,7 @@ import { Avatar, DeadlineBadge, ProgressBar, SortTh, useSort } from "@/component
 import { useUserName } from "@/components/ui/UserPicker";
 import { api, refresh, useMe } from "@/lib/client";
 import { toast, toastError } from "@/lib/toast";
-import { checklistStatus, countSummary, projectProgress, stepPeople, workingStep, type CountSummary, type ProjectStep } from "@/lib/workflow";
+import { checklistStatus, countSummary, finishedBy, projectProgress, stepPeople, workingStep, type CountSummary, type ProjectStep } from "@/lib/workflow";
 import type { Project } from "@/lib/types";
 
 export function projectTitle(p: Pick<Project, "brand" | "theme" | "legacyName" | "type">) {
@@ -121,8 +121,10 @@ export function DoingButton({ p }: { p: Project }) {
   if (!step || p.status === "completed" || !me) return null;
   const people = stepPeople(step);
   const onIt = step.status === "doing" && people.includes(me.id);
+  const iFinished = onIt && finishedBy(step, me.id);
 
-  // Not on it yet → "I'm doing" starts it; on it → "Finished working" marks it done.
+  // Not on it → "I'm doing" starts it; on it → "Finished working" records my part as done
+  // (the step stays open until someone marks it Done).
   async function start(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -131,9 +133,9 @@ export function DoingButton({ p }: { p: Project }) {
     try {
       await api(`/api/projects/${p._id}/steps/${step.id}`, {
         method: "PATCH",
-        body: onIt ? { status: "done" } : { status: "doing", assignees: people.includes(me.id) ? people : [...people, me.id] },
+        body: onIt ? { finished: true } : { status: "doing", assignees: people.includes(me.id) ? people : [...people, me.id] },
       });
-      toast.success(onIt ? `“${step.title}” is done. Nice work!` : `You're on “${step.title}”.`);
+      toast.success(onIt ? `Marked your part of “${step.title}” as finished — the team has been told.` : `You're on “${step.title}”.`);
       refresh("/api/projects?", "/api/dashboard", "/api/steps");
     } catch (err) {
       toastError(err);
@@ -142,9 +144,16 @@ export function DoingButton({ p }: { p: Project }) {
     }
   }
 
+  if (iFinished) {
+    return (
+      <span className="chip shrink-0 bg-[#30d158]/15 text-[#30d158]" title={`You finished your part of “${step.title}”. Open the step to undo.`} onClick={(e) => e.stopPropagation()}>
+        <CircleCheck className="h-3 w-3" />Finished
+      </span>
+    );
+  }
   if (onIt) {
     return (
-      <button className="btn-primary btn-sm shrink-0" onClick={start} disabled={busy} title={`You're working on “${step.title}” — click when it's finished`}>
+      <button className="btn-primary btn-sm shrink-0" onClick={start} disabled={busy} title={`You're working on “${step.title}” — click when your part is finished (doesn't close the step)`}>
         <CircleCheck className="h-3.5 w-3.5" />Finished working
       </button>
     );

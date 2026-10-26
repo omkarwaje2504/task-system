@@ -43,7 +43,12 @@ export type ProjectStep = StepTemplate & {
   updatedAt?: string;
   /** IT projects: the module (page / part / section) this task belongs to. Empty = General. */
   module?: string;
+  /** People who pressed "Finished working" — their part is done; the step stays open until marked Done. */
+  finished?: { user: string; name: string; at: string }[];
 };
+
+/** Has this person said they finished their part of the step? */
+export const finishedBy = (step: Pick<ProjectStep, "finished">, userId?: string) => !!userId && (step.finished || []).some((f) => f.user === userId);
 
 /**
  * Checklist: plain tick boxes, separate from steps (no people, dates or

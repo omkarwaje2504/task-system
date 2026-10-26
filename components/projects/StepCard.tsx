@@ -8,9 +8,9 @@ import LanguagesPanel from "./LanguagesPanel";
 import QuantityPanel from "./QuantityPanel";
 import PrinterPanel from "./PrinterPanel";
 import { fmtDate, useMe } from "@/lib/client";
-import { languageProgress, STEP_KINDS, stepPeople, type ProjectStep, type StepData } from "@/lib/workflow";
+import { finishedBy, languageProgress, STEP_KINDS, stepPeople, type ProjectStep, type StepData } from "@/lib/workflow";
 
-export type StepPatch = Partial<Pick<ProjectStep, "status" | "assignees" | "dueDate" | "note" | "link" | "title" | "module">> & { data?: Partial<StepData> };
+export type StepPatch = Partial<Pick<ProjectStep, "status" | "assignees" | "dueDate" | "note" | "link" | "title" | "module">> & { data?: Partial<StepData>; finished?: boolean };
 
 /** Shared column layout so the header and every row line up like a table. */
 export const STEP_GRID = "grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-x-3 lg:grid-cols-[24px_minmax(0,1fr)_110px_130px_92px_88px_128px]";
@@ -73,6 +73,7 @@ export default function StepCard({ step, index, isCurrent, projectId, onPatch, o
     : langs ? `${langs.done}/${langs.total} language parts done`
     : step.kind === "quantity" && step.data.totals ? `${step.data.totals.completed} ${step.data.unit || "pcs"} completed so far`
     : step.kind === "printer" && step.data.printerName ? `Printer: ${step.data.printerName}`
+    : step.finished?.length ? `✓ Finished: ${step.finished.map((f) => `${f.name.split(" ")[0]} (${fmtDate(f.at)})`).join(", ")}`
     : "";
 
   return (
@@ -140,12 +141,16 @@ export default function StepCard({ step, index, isCurrent, projectId, onPatch, o
             {!done && step.status !== "doing" && step.kind !== "languages" && (
               <button className="btn-ghost btn-sm" onClick={() => setStatus("doing")} disabled={busy}>I&apos;m working on it</button>
             )}
-            {/* In progress → say when the work is finished (marks the step done). */}
-            {step.status === "doing" && (
-              <button className="btn-primary btn-sm" onClick={() => setStatus("done")} disabled={busy}>
+            {/* In progress → say your part is finished. The step stays open until someone presses Done. */}
+            {step.status === "doing" && me && (finishedBy(step, me.id) ? (
+              <button className="btn-ghost btn-sm" onClick={() => onPatch({ finished: false })} title="Undo — you're back on it">
+                <Check className="h-3.5 w-3.5 text-[#30d158]" strokeWidth={3} />You finished · undo
+              </button>
+            ) : (
+              <button className="btn-primary btn-sm" onClick={() => onPatch({ finished: true, ...(people.includes(me.id) ? {} : { assignees: [...people, me.id] }) })}>
                 <Check className="h-3.5 w-3.5" strokeWidth={3} />Finished working on it
               </button>
-            )}
+            ))}
           </div>
 
           {step.kind === "link" && (

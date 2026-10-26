@@ -46,6 +46,17 @@ export async function PATCH(req: Request, { params }: Ctx) {
     else delete next.module;
   }
   next.updatedAt = new Date().toISOString();
+  // "Finished working": records that I finished my part — it does NOT mark the step done.
+  // { finished: true | false } (false = I'm back on it). Starting it again also clears mine.
+  const wasFinished = (step.finished || []).some((f) => f.user === s.id);
+  const others = (step.finished || []).filter((f) => f.user !== s.id);
+  let justFinished = false;
+  if (b.finished === true) {
+    next.finished = [...others, { user: s.id, name: s.name, at: next.updatedAt }];
+    justFinished = !wasFinished;
+  } else if (b.finished === false || b.status === "doing") {
+    next.finished = others;
+  }
 
   if (b.data) {
     if (step.kind === "languages") {
@@ -88,12 +99,14 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const before = new Set(stepPeople(step));
   const added = (next.assignees || []).filter((a) => !before.has(a));
   const moved = status && status !== step.status && (status === "doing" || status === "done") ? status : null;
-  if (added.length || moved) {
+  if (added.length || moved || justFinished) {
     const where = await projectLabel(db, project);
     const link = `/project/${project._id}`;
     if (added.length) await notify(db, s, added, { type: "step.assigned", title: `${s.name} assigned you a step`, body: `“${next.title}” — ${where}`, link, project: project._id });
     // Heads, the actor's team leads, and everyone else on this step.
-    const watchers = moved ? await watcherIds(db, s, next.assignees || []) : [];
+    const watchers = moved || justFinished ? await watcherIds(db, s, next.assignees || []) : [];
+    if (justFinished) await logActivity(db, s, "step.finished", `finished working on “${next.title}”`, { project: project._id });
+    if (justFinished) await notify(db, s, watchers, { type: "step.finished", title: `${s.name} finished working on “${next.title}”`, body: where, link, project: project._id });
     if (moved === "doing") await notify(db, s, watchers, { type: "step.doing", title: `${s.name} is working on “${next.title}”`, body: where, link, project: project._id });
     if (moved === "done") await notify(db, s, watchers, { type: "step.done", title: `${s.name} finished “${next.title}”`, body: where, link, project: project._id });
   }
