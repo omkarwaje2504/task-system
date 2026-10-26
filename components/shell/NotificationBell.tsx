@@ -13,7 +13,7 @@ import { disablePush, enablePush, onForegroundPush, pushSupported, savedToken } 
 type Note = { _id: string; type: string; title: string; body: string; link: string; actorName?: string; read: boolean; createdAt: string };
 type Feed = { items: Note[]; unread: number; push: boolean };
 
-const ICONS: Record<string, LucideIcon> = { "step.assigned": UserPlus, "step.doing": CircleDot, "step.done": CircleCheck, "step.finished": CircleCheck, "sample.working": FlaskConical, "sample.finished": CircleCheck };
+const ICONS: Record<string, LucideIcon> = { "step.assigned": UserPlus, "step.doing": CircleDot, "step.done": CircleCheck, "sample.working": FlaskConical };
 
 /** Bell (top right) with the unread count; opens the notification panel. */
 export default function NotificationBell() {

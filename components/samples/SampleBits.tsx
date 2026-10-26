@@ -20,7 +20,7 @@ export function SampleStatusChip({ status }: { status?: SampleStatus }) {
 export const sampleTitle = (p: Pick<Project, "brand" | "theme" | "type">) =>
   [p.brand?.name, p.theme].filter(Boolean).join(" — ") || `${p.type?.name || ""} sample`;
 
-/** "I'm working" puts you on the sample (a requested sample moves to Working); then "Finished working" says you're done. */
+/** "I'm working" toggle: puts you on the sample (a requested sample moves to Working); click again to take the mark off. */
 export function WorkingButton({ p, onDone }: { p: Project; onDone?: (next: Project) => void }) {
   const { data: me } = useMe();
   const [busy, setBusy] = useState(false);
@@ -32,8 +32,8 @@ export function WorkingButton({ p, onDone }: { p: Project; onDone?: (next: Proje
     e.stopPropagation();
     setBusy(true);
     try {
-      const next = await api<Project>(`/api/samples/${p._id}`, { method: "PATCH", body: onIt ? { working: false, finished: true } : { working: true } });
-      toast.success(onIt ? "Marked as finished — the team has been told." : "You're on this sample.");
+      const next = await api<Project>(`/api/samples/${p._id}`, { method: "PATCH", body: { working: !onIt } });
+      toast.success(onIt ? "Cleared “I'm working” on this sample." : "You're working on this sample.");
       onDone?.(next);
       refresh("/api/samples");
     } catch (err) {
@@ -42,13 +42,10 @@ export function WorkingButton({ p, onDone }: { p: Project; onDone?: (next: Proje
       setBusy(false);
     }
   }
-  return onIt ? (
-    <button className="btn-primary btn-sm shrink-0" onClick={toggle} disabled={busy} title="Click when your part of this sample is finished">
-      <CircleCheck className="h-3.5 w-3.5" />Finished working
-    </button>
-  ) : (
-    <button className="btn-soft btn-sm shrink-0" onClick={toggle} disabled={busy}>
-      <Hand className="h-3.5 w-3.5" />I&apos;m working
+  return (
+    <button className={`${onIt ? "btn-primary" : "btn-soft"} btn-sm shrink-0`} onClick={toggle} disabled={busy} aria-pressed={onIt}
+      title={onIt ? "You're working on this sample — click to clear" : "Mark that you're working on this sample"}>
+      {onIt ? <CircleCheck className="h-3.5 w-3.5" /> : <Hand className="h-3.5 w-3.5" />}I&apos;m working
     </button>
   );
 }

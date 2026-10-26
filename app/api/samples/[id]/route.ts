@@ -25,8 +25,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 }
 
 /**
- * { working?: boolean, finished?: boolean } — "I'm working" adds you (a requested sample moves to
- *   Working); "Finished working" ({ working: false, finished: true }) takes you off and tells the heads
+ * { working?: boolean } — "I'm working" toggle: true adds you (a requested sample moves to Working), false takes you off
  * { sampleStatus?, theme?, notes?, productType?, companyName?, brandName?, priority? }
  */
 export async function PATCH(req: Request, { params }: Ctx) {
@@ -48,11 +47,6 @@ export async function PATCH(req: Request, { params }: Ctx) {
       if (p.sampleStatus === "requested") set.sampleStatus = "working";
       await logActivity(db, s, "sample.working", "started working on a sample", { project: p._id });
       await notify(db, s, await watcherIds(db, s, p.workers || []), { type: "sample.working", title: `${s.name} is working on a sample`, body: (await projectLabel(db, p)).replace(/ project$/, " sample"), link: `/samples/${p._id}`, project: p._id });
-    } else if (b.finished && workers.includes(s.id)) {
-      set.lastFinishedBy = s.name;
-      set.lastFinishedAt = now;
-      await logActivity(db, s, "sample.finished", "finished working on a sample", { project: p._id });
-      await notify(db, s, await watcherIds(db, s, workers), { type: "sample.finished", title: `${s.name} finished working on a sample`, body: (await projectLabel(db, p)).replace(/ project$/, " sample"), link: `/samples/${p._id}`, project: p._id });
     }
   }
   if (b.sampleStatus !== undefined && PICKABLE.includes(b.sampleStatus) && b.sampleStatus !== p.sampleStatus) {

@@ -56,7 +56,7 @@ export async function GET(req: Request) {
         theme: 1, deadline: 1, status: 1, createdAt: 1, updatedAt: 1, completedAt: 1, legacyName: 1, priority: 1,
         // Steps are the tasks: enough of each for the table and the hover card.
         "steps.id": 1, "steps.title": 1, "steps.status": 1, "steps.kind": 1, "steps.assignees": 1, "steps.dueDate": 1,
-        "steps.note": 1, "steps.doneAt": 1, "steps.doneByName": 1, "steps.updatedAt": 1, "steps.createdAt": 1, "steps.finished": 1,
+        "steps.note": 1, "steps.doneAt": 1, "steps.doneByName": 1, "steps.updatedAt": 1, "steps.createdAt": 1,
         // Enough step data for the list's count column (daily totals / videos done).
         "steps.data.totals": 1, "steps.data.target": 1, "steps.data.unit": 1, "steps.data.voices": 1, "steps.data.languages": 1,
         ...TYPE_FIELDS, "brand._id": 1, "brand.name": 1, "company._id": 1, "company.name": 1,

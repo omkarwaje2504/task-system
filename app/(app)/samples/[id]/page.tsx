@@ -116,7 +116,6 @@ export default function SamplePage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {workers.length > 0 && <span className="flex items-center gap-1.5 text-xs text-muted" title={workers.join(", ")}><AvatarStack names={workers} size="sm" />working{p.workingSince ? ` · ${timeAgo(p.workingSince)}` : ""}</span>}
-            {p.lastFinishedBy && <span className="text-xs text-muted">Finished by {p.lastFinishedBy}{p.lastFinishedAt ? ` · ${timeAgo(p.lastFinishedAt)}` : ""}</span>}
             <WorkingButton p={p} onDone={(next) => mutate(next, { revalidate: false })} />
             <button className="btn-ghost btn-sm" onClick={() => setEditing(true)}><Pencil className="h-3 w-3" />Edit</button>
             <button className="btn-primary btn-sm" onClick={() => setConverting(true)}><FolderInput className="h-3.5 w-3.5" />Convert to project</button>

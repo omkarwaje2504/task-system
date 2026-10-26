@@ -41,9 +41,6 @@ export type Project = {
   sampleStatus?: import("./samples").SampleStatus;
   workers?: string[];
   workingSince?: string;
-  /** Who last pressed "Finished working" on a sample, and when. */
-  lastFinishedBy?: string;
-  lastFinishedAt?: string;
   convertedAt?: string;
   requestedAt?: string;
   notes?: string;

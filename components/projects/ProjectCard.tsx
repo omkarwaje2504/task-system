@@ -9,7 +9,7 @@ import { Avatar, DeadlineBadge, ProgressBar, SortTh, useSort } from "@/component
 import { useUserName } from "@/components/ui/UserPicker";
 import { api, refresh, useMe } from "@/lib/client";
 import { toast, toastError } from "@/lib/toast";
-import { checklistStatus, countSummary, finishedBy, projectProgress, stepPeople, workingStep, type CountSummary, type ProjectStep } from "@/lib/workflow";
+import { checklistStatus, countSummary, projectProgress, stepPeople, workingStep, type CountSummary, type ProjectStep } from "@/lib/workflow";
 import type { Project } from "@/lib/types";
 
 export function projectTitle(p: Pick<Project, "brand" | "theme" | "legacyName" | "type">) {
@@ -111,8 +111,9 @@ export function checklistText(p: Project) {
 }
 
 /**
- * "I'm doing": marks the project's working step (its latest open step — see
- * workingStep) as in progress and puts you on it, so the dashboard shows it.
+ * "I'm working" toggle for the project's working step (its latest open step —
+ * see workingStep). Click: the step goes in progress and you're put on it.
+ * Click again: the mark is cleared (back to no status) — click once more to re-mark.
  */
 export function DoingButton({ p }: { p: Project }) {
   const { data: me } = useMe();
@@ -121,11 +122,8 @@ export function DoingButton({ p }: { p: Project }) {
   if (!step || p.status === "completed" || !me) return null;
   const people = stepPeople(step);
   const onIt = step.status === "doing" && people.includes(me.id);
-  const iFinished = onIt && finishedBy(step, me.id);
 
-  // Not on it → "I'm doing" starts it; on it → "Finished working" records my part as done
-  // (the step stays open until someone marks it Done).
-  async function start(e: MouseEvent) {
+  async function toggle(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     if (!step || !me) return;
@@ -133,9 +131,9 @@ export function DoingButton({ p }: { p: Project }) {
     try {
       await api(`/api/projects/${p._id}/steps/${step.id}`, {
         method: "PATCH",
-        body: onIt ? { finished: true } : { status: "doing", assignees: people.includes(me.id) ? people : [...people, me.id] },
+        body: onIt ? { status: "todo" } : { status: "doing", assignees: people.includes(me.id) ? people : [...people, me.id] },
       });
-      toast.success(onIt ? `Marked your part of “${step.title}” as finished — the team has been told.` : `You're on “${step.title}”.`);
+      toast.success(onIt ? `Cleared “I'm working” on “${step.title}”.` : `You're working on “${step.title}”.`);
       refresh("/api/projects?", "/api/dashboard", "/api/steps");
     } catch (err) {
       toastError(err);
@@ -144,23 +142,10 @@ export function DoingButton({ p }: { p: Project }) {
     }
   }
 
-  if (iFinished) {
-    return (
-      <span className="chip shrink-0 bg-[#30d158]/15 text-[#30d158]" title={`You finished your part of “${step.title}”. Open the step to undo.`} onClick={(e) => e.stopPropagation()}>
-        <CircleCheck className="h-3 w-3" />Finished
-      </span>
-    );
-  }
-  if (onIt) {
-    return (
-      <button className="btn-primary btn-sm shrink-0" onClick={start} disabled={busy} title={`You're working on “${step.title}” — click when your part is finished (doesn't close the step)`}>
-        <CircleCheck className="h-3.5 w-3.5" />Finished working
-      </button>
-    );
-  }
   return (
-    <button className="btn-soft btn-sm shrink-0" onClick={start} disabled={busy} title={`Mark “${step.title}” as in progress and put you on it`}>
-      <Hand className="h-3.5 w-3.5" />I&apos;m doing
+    <button className={`${onIt ? "btn-primary" : "btn-soft"} btn-sm shrink-0`} onClick={toggle} disabled={busy} aria-pressed={onIt}
+      title={onIt ? `You're working on “${step.title}” — click to clear` : `Mark “${step.title}” as in progress and put you on it`}>
+      {onIt ? <CircleCheck className="h-3.5 w-3.5" /> : <Hand className="h-3.5 w-3.5" />}I&apos;m working
     </button>
   );
 }

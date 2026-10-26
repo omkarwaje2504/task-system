@@ -69,8 +69,6 @@ export async function GET() {
       {
         $project: {
           person: "$steps.assignees",
-          // Pressed "Finished working" on this step → not "working on it" any more.
-          finishedMine: { $in: ["$steps.assignees", { $ifNull: ["$steps.finished.user", []] }] },
           item: {
             step: { id: "$steps.id", title: "$steps.title", status: "$steps.status", dueDate: "$steps.dueDate", note: "$steps.note", updatedAt: "$steps.updatedAt", module: "$steps.module" },
             project: { _id: "$_id", theme: "$theme", legacyName: "$legacyName" },
@@ -85,13 +83,13 @@ export async function GET() {
           _id: "$person",
           open: { $sum: 1 },
           overdue: { $sum: { $cond: [{ $and: [{ $ne: [{ $ifNull: ["$item.step.dueDate", null] }, null] }, { $lt: ["$item.step.dueDate", today] }] }, 1, 0] } },
-          items: { $push: { $mergeObjects: ["$item", { finishedMine: "$finishedMine" }] } },
+          items: { $push: "$item" },
         },
       },
       {
         $project: {
           open: 1, overdue: 1,
-          doing: { $slice: [{ $filter: { input: "$items", cond: { $and: [{ $eq: ["$$this.step.status", "doing"] }, { $not: ["$$this.finishedMine"] }] } } }, 5] },
+          doing: { $slice: [{ $filter: { input: "$items", cond: { $eq: ["$$this.step.status", "doing"] } } }, 5] },
         },
       },
     ]).toArray(),
