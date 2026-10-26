@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
-import { Hand, Shapes, X } from "lucide-react";
+import { CircleCheck, Hand, Shapes } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { Field } from "@/components/ui/bits";
 import Combobox from "@/components/ui/Combobox";
@@ -20,7 +20,7 @@ export function SampleStatusChip({ status }: { status?: SampleStatus }) {
 export const sampleTitle = (p: Pick<Project, "brand" | "theme" | "type">) =>
   [p.brand?.name, p.theme].filter(Boolean).join(" — ") || `${p.type?.name || ""} sample`;
 
-/** "I'm working": puts you on the sample (a requested sample moves to Working); click again to step off. */
+/** "I'm working" puts you on the sample (a requested sample moves to Working); then "Finished working" says you're done. */
 export function WorkingButton({ p, onDone }: { p: Project; onDone?: (next: Project) => void }) {
   const { data: me } = useMe();
   const [busy, setBusy] = useState(false);
@@ -32,8 +32,8 @@ export function WorkingButton({ p, onDone }: { p: Project; onDone?: (next: Proje
     e.stopPropagation();
     setBusy(true);
     try {
-      const next = await api<Project>(`/api/samples/${p._id}`, { method: "PATCH", body: { working: !onIt } });
-      toast.success(onIt ? "You're off this sample." : "You're on this sample.");
+      const next = await api<Project>(`/api/samples/${p._id}`, { method: "PATCH", body: onIt ? { working: false, finished: true } : { working: true } });
+      toast.success(onIt ? "Marked as finished — the team has been told." : "You're on this sample.");
       onDone?.(next);
       refresh("/api/samples");
     } catch (err) {
@@ -43,8 +43,8 @@ export function WorkingButton({ p, onDone }: { p: Project; onDone?: (next: Proje
     }
   }
   return onIt ? (
-    <button className="btn-ghost btn-sm shrink-0" onClick={toggle} disabled={busy} title="Click to stop working on it">
-      <X className="h-3.5 w-3.5" />Stop working
+    <button className="btn-primary btn-sm shrink-0" onClick={toggle} disabled={busy} title="Click when your part of this sample is finished">
+      <CircleCheck className="h-3.5 w-3.5" />Finished working
     </button>
   ) : (
     <button className="btn-soft btn-sm shrink-0" onClick={toggle} disabled={busy}>

@@ -3,7 +3,7 @@
 import { useState, type HTMLAttributes, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ChevronRight, CircleDot, Hand, Star, X } from "lucide-react";
+import { Check, ChevronRight, CircleCheck, Hand, Star, X } from "lucide-react";
 import TypeIcon from "@/components/ui/TypeIcon";
 import { Avatar, DeadlineBadge, ProgressBar, SortTh, useSort } from "@/components/ui/bits";
 import { useUserName } from "@/components/ui/UserPicker";
@@ -122,6 +122,7 @@ export function DoingButton({ p }: { p: Project }) {
   const people = stepPeople(step);
   const onIt = step.status === "doing" && people.includes(me.id);
 
+  // Not on it yet → "I'm doing" starts it; on it → "Finished working" marks it done.
   async function start(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -130,9 +131,9 @@ export function DoingButton({ p }: { p: Project }) {
     try {
       await api(`/api/projects/${p._id}/steps/${step.id}`, {
         method: "PATCH",
-        body: { status: "doing", assignees: people.includes(me.id) ? people : [...people, me.id] },
+        body: onIt ? { status: "done" } : { status: "doing", assignees: people.includes(me.id) ? people : [...people, me.id] },
       });
-      toast.success(`You're on “${step.title}”.`);
+      toast.success(onIt ? `“${step.title}” is done. Nice work!` : `You're on “${step.title}”.`);
       refresh("/api/projects?", "/api/dashboard", "/api/steps");
     } catch (err) {
       toastError(err);
@@ -143,9 +144,9 @@ export function DoingButton({ p }: { p: Project }) {
 
   if (onIt) {
     return (
-      <span className="chip shrink-0 bg-accent-soft text-accent" title={`You're working on “${step.title}”`} onClick={(e) => e.stopPropagation()}>
-        <CircleDot className="h-3 w-3" />You&apos;re on it
-      </span>
+      <button className="btn-primary btn-sm shrink-0" onClick={start} disabled={busy} title={`You're working on “${step.title}” — click when it's finished`}>
+        <CircleCheck className="h-3.5 w-3.5" />Finished working
+      </button>
     );
   }
   return (

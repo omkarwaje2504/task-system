@@ -15,7 +15,7 @@ import { escapeRegex } from "./db";
  */
 
 export type NotifyInput = {
-  type: "step.assigned" | "step.doing" | "step.done" | "sample.working";
+  type: "step.assigned" | "step.doing" | "step.done" | "sample.working" | "sample.finished";
   title: string;
   body: string;
   /** Where clicking it goes, e.g. /project/<id> */

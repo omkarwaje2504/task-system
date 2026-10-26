@@ -140,6 +140,12 @@ export default function StepCard({ step, index, isCurrent, projectId, onPatch, o
             {!done && step.status !== "doing" && step.kind !== "languages" && (
               <button className="btn-ghost btn-sm" onClick={() => setStatus("doing")} disabled={busy}>I&apos;m working on it</button>
             )}
+            {/* In progress → say when the work is finished (marks the step done). */}
+            {step.status === "doing" && (
+              <button className="btn-primary btn-sm" onClick={() => setStatus("done")} disabled={busy}>
+                <Check className="h-3.5 w-3.5" strokeWidth={3} />Finished working on it
+              </button>
+            )}
           </div>
 
           {step.kind === "link" && (
