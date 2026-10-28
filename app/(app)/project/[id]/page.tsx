@@ -17,7 +17,7 @@ import ChecklistPanel, { showsChecklist } from "@/components/projects/ChecklistP
 import ModulesBoard, { GENERAL, moduleGroups } from "@/components/projects/ModulesBoard";
 import { StarButton, projectTitle } from "@/components/projects/ProjectCard";
 import { UserMultiSelect } from "@/components/ui/UserPicker";
-import { api, fmtDate, refresh, useApi, useMe, useTypes } from "@/lib/client";
+import { api, fmtDate, movedOffText, refresh, useApi, useMe, useTypes } from "@/lib/client";
 import { confirmDialog } from "@/lib/confirm";
 import { toast, toastError } from "@/lib/toast";
 import { projectProgress, STEP_KINDS, stepPeople, type ProjectStep, type StepKind } from "@/lib/workflow";
@@ -181,8 +181,9 @@ export default function ProjectPage() {
   /** Returns false if the save failed (so a form can stay open). */
   async function patchStep(stepId: string, patch: StepPatch) {
     try {
-      const next = await api<Project>(`/api/projects/${id}/steps/${stepId}`, { method: "PATCH", body: patch });
+      const next = await api<Project & { stopped?: string[] }>(`/api/projects/${id}/steps/${stepId}`, { method: "PATCH", body: patch });
       await mutate(next, { revalidate: false });
+      if (next.stopped?.length) toast.info(`You're working on this now.${movedOffText(next.stopped)}`);
       const wasDone = p?.steps.find((s) => s.id === stepId)?.status === "done";
       const nowDone = next.steps.find((s) => s.id === stepId)?.status === "done";
       if (!wasDone && nowDone) {

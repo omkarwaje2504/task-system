@@ -7,7 +7,7 @@ import { Check, ChevronRight, CircleCheck, Hand, Star, X } from "lucide-react";
 import TypeIcon from "@/components/ui/TypeIcon";
 import { Avatar, DeadlineBadge, ProgressBar, SortTh, useSort } from "@/components/ui/bits";
 import { useUserName } from "@/components/ui/UserPicker";
-import { api, refresh, useMe } from "@/lib/client";
+import { api, movedOffText, refresh, useMe } from "@/lib/client";
 import { toast, toastError } from "@/lib/toast";
 import { checklistStatus, countSummary, projectProgress, stepPeople, workingStep, type CountSummary, type ProjectStep } from "@/lib/workflow";
 import type { Project } from "@/lib/types";
@@ -129,12 +129,12 @@ export function DoingButton({ p }: { p: Project }) {
     if (!step || !me) return;
     setBusy(true);
     try {
-      await api(`/api/projects/${p._id}/steps/${step.id}`, {
+      const res = await api<{ stopped?: string[] }>(`/api/projects/${p._id}/steps/${step.id}`, {
         method: "PATCH",
         body: onIt ? { status: "todo" } : { status: "doing", assignees: people.includes(me.id) ? people : [...people, me.id] },
       });
-      toast.success(onIt ? `Cleared “I'm working” on “${step.title}”.` : `You're working on “${step.title}”.`);
-      refresh("/api/projects?", "/api/dashboard", "/api/steps");
+      toast.success(onIt ? `Cleared “I'm working” on “${step.title}”.` : `You're working on “${step.title}”.${movedOffText(res.stopped)}`);
+      refresh("/api/projects", "/api/dashboard", "/api/steps", "/api/samples");
     } catch (err) {
       toastError(err);
     } finally {

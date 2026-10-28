@@ -7,7 +7,7 @@ import { Field } from "@/components/ui/bits";
 import Combobox from "@/components/ui/Combobox";
 import TypeIcon from "@/components/ui/TypeIcon";
 import BrandCompanyFields from "@/components/projects/BrandCompanyFields";
-import { api, refresh, useMe, useTypes } from "@/lib/client";
+import { api, movedOffText, refresh, useMe, useTypes } from "@/lib/client";
 import { toast, toastError } from "@/lib/toast";
 import { SAMPLE_STATUS, type SampleStatus } from "@/lib/samples";
 import type { ProductTypeDoc, Project } from "@/lib/types";
@@ -32,10 +32,10 @@ export function WorkingButton({ p, onDone }: { p: Project; onDone?: (next: Proje
     e.stopPropagation();
     setBusy(true);
     try {
-      const next = await api<Project>(`/api/samples/${p._id}`, { method: "PATCH", body: { working: !onIt } });
-      toast.success(onIt ? "Cleared “I'm working” on this sample." : "You're working on this sample.");
+      const next = await api<Project & { stopped?: string[] }>(`/api/samples/${p._id}`, { method: "PATCH", body: { working: !onIt } });
+      toast.success(onIt ? "Cleared “I'm working” on this sample." : `You're working on this sample.${movedOffText(next.stopped)}`);
       onDone?.(next);
-      refresh("/api/samples");
+      refresh("/api/samples", "/api/projects", "/api/dashboard", "/api/steps");
     } catch (err) {
       toastError(err);
     } finally {

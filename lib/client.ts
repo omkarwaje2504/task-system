@@ -46,6 +46,10 @@ export const usePrinters = () => useApi<Printer[]>("/api/printers");
 export const useBrands = () => useApi<Brand[]>("/api/brands");
 export const useDepartments = () => useApi<Department[]>("/api/departments");
 
+/** "I'm working" is one at a time: say what starting this cleared (from the API's `stopped`). */
+export const movedOffText = (stopped?: string[]) =>
+  stopped?.length ? ` Moved you off ${stopped.length > 2 ? `${stopped.slice(0, 2).join(", ")} and ${stopped.length - 2} more` : stopped.join(" and ")}.` : "";
+
 /** Revalidate every cached key that starts with one of these prefixes. */
 export function refresh(...prefixes: string[]) {
   return globalMutate((key) => typeof key === "string" && prefixes.some((p) => key.startsWith(p)));

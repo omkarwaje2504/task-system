@@ -3,6 +3,7 @@ import { connectDB, isId, notDeleted, oid } from "@/lib/db";
 import { bad, requireUser } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { notify, projectLabel, watcherIds } from "@/lib/notify";
+import { stopOtherWork } from "@/lib/working";
 import { getProject } from "@/lib/projects";
 import { cleanModule, languageProgress, stepPeople, uid, type LanguageRow, type ProjectStep, type StepStatus, type VoiceState } from "@/lib/workflow";
 
@@ -84,6 +85,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
     { $set: { "steps.$": next, updatedAt: new Date() }, ...(next.module ? { $addToSet: { modules: next.module } } : {}) },
   );
 
+  // One "I'm working" at a time: marking this step clears my other marks (steps and samples).
+  const stopped = next.status === "doing" && b.status === "doing" && (next.assignees || []).includes(s.id)
+    ? await stopOtherWork(db, s.id, { project: project._id, stepId })
+    : [];
+
   // Notifications: people newly put on the step; heads when someone starts or finishes it.
   const before = new Set(stepPeople(step));
   const added = (next.assignees || []).filter((a) => !before.has(a));
@@ -97,7 +103,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     if (moved === "doing") await notify(db, s, watchers, { type: "step.doing", title: `${s.name} is working on “${next.title}”`, body: where, link, project: project._id });
     if (moved === "done") await notify(db, s, watchers, { type: "step.done", title: `${s.name} finished “${next.title}”`, body: where, link, project: project._id });
   }
-  return NextResponse.json(await getProject(db, project._id));
+  return NextResponse.json({ ...(await getProject(db, project._id)), stopped });
 }
 
 export async function DELETE(_req: Request, { params }: Ctx) {

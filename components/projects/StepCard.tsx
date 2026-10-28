@@ -142,7 +142,7 @@ export default function StepCard({ step, index, isCurrent, projectId, onPatch, o
               <button className={`${step.status === "doing" ? "btn-primary" : "btn-ghost"} btn-sm`} disabled={busy} aria-pressed={step.status === "doing"}
                 onClick={() => setStatus(step.status === "doing" ? "todo" : "doing")}
                 title={step.status === "doing" ? "Click to clear the mark" : "Mark this step as in progress"}>
-                {step.status === "doing" && <Check className="h-3.5 w-3.5" strokeWidth={3} />}I&apos;m working on it
+                {step.status === "doing" && <Check className="h-3.5 w-3.5" strokeWidth={3} />}{step.status === "doing" ? "Uncheck Working on it" : "I&apos;m working on it"}
               </button>
             )}
           </div>

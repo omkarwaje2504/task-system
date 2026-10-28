@@ -4,6 +4,7 @@ import { bad, requireUser } from "@/lib/auth";
 import { resolveBrand, resolveCompany } from "@/lib/clients";
 import { logActivity } from "@/lib/activity";
 import { notify, projectLabel, watcherIds } from "@/lib/notify";
+import { stopOtherWork } from "@/lib/working";
 import { getProject } from "@/lib/projects";
 import { PICKABLE, SAMPLE_STATUS, type SampleStatus } from "@/lib/samples";
 
@@ -39,12 +40,15 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const now = new Date();
   const set: Record<string, unknown> = { updatedAt: now };
 
+  let stopped: string[] = [];
   if (typeof b.working === "boolean") {
     const workers: string[] = p.workers || [];
     set.workers = b.working ? [...new Set([...workers, s.id])] : workers.filter((w) => w !== s.id);
     if (b.working) {
       set.workingSince = now;
       if (p.sampleStatus === "requested") set.sampleStatus = "working";
+      // One "I'm working" at a time: clear my other marks (steps and other samples).
+      stopped = await stopOtherWork(db, s.id, { project: p._id });
       await logActivity(db, s, "sample.working", "started working on a sample", { project: p._id });
       await notify(db, s, await watcherIds(db, s, p.workers || []), { type: "sample.working", title: `${s.name} is working on a sample`, body: (await projectLabel(db, p)).replace(/ project$/, " sample"), link: `/samples/${p._id}`, project: p._id });
     }
@@ -68,7 +72,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     set.company = company;
   }
   await db.collection("projects").updateOne({ _id: p._id }, { $set: set });
-  return NextResponse.json(await getProject(db, p._id));
+  return NextResponse.json({ ...(await getProject(db, p._id)), stopped });
 }
 
 export async function DELETE(_req: Request, { params }: Ctx) {
