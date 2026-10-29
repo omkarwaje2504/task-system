@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
-import { CircleCheck, Hand, Shapes } from "lucide-react";
+import { Hand, Shapes, X } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { Field } from "@/components/ui/bits";
 import Combobox from "@/components/ui/Combobox";
@@ -45,7 +45,7 @@ export function WorkingButton({ p, onDone }: { p: Project; onDone?: (next: Proje
   return (
     <button className={`${onIt ? "btn-primary" : "btn-soft"} btn-sm shrink-0`} onClick={toggle} disabled={busy} aria-pressed={onIt}
       title={onIt ? "You're working on this sample — click to clear" : "Mark that you're working on this sample"}>
-      {onIt ? <CircleCheck className="h-3.5 w-3.5" /> : <Hand className="h-3.5 w-3.5" />}I&apos;m working
+      {onIt ? <><X className="h-3.5 w-3.5" />Uncheck</> : <><Hand className="h-3.5 w-3.5" />I&apos;m working</>}
     </button>
   );
 }

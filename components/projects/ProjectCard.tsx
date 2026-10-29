@@ -3,7 +3,7 @@
 import { useState, type HTMLAttributes, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ChevronRight, CircleCheck, Hand, Star, X } from "lucide-react";
+import { Check, ChevronRight, Hand, Star, X } from "lucide-react";
 import TypeIcon from "@/components/ui/TypeIcon";
 import { Avatar, DeadlineBadge, ProgressBar, SortTh, useSort } from "@/components/ui/bits";
 import { useUserName } from "@/components/ui/UserPicker";
@@ -145,7 +145,7 @@ export function DoingButton({ p }: { p: Project }) {
   return (
     <button className={`${onIt ? "btn-primary" : "btn-soft"} btn-sm shrink-0`} onClick={toggle} disabled={busy} aria-pressed={onIt}
       title={onIt ? `You're working on “${step.title}” — click to clear` : `Mark “${step.title}” as in progress and put you on it`}>
-      {onIt ? <CircleCheck className="h-3.5 w-3.5" /> : <Hand className="h-3.5 w-3.5" />}I&apos;m working
+      {onIt ? <><X className="h-3.5 w-3.5" />Uncheck</> : <><Hand className="h-3.5 w-3.5" />I&apos;m working</>}
     </button>
   );
 }
