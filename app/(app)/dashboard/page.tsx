@@ -22,6 +22,8 @@ type Dash = {
 };
 
 type WorkItem = {
+  /** A sample someone marked "I'm working" on (not a project step). */
+  sample?: boolean;
   step: { id: string; title: string; status: string; dueDate: string | null; note?: string; updatedAt?: string; module?: string };
   project: { _id: string; theme: string; legacyName?: string };
   brand?: string;
@@ -34,14 +36,15 @@ const workProject = (w: WorkItem) => [w.brand, w.project.theme].filter(Boolean).
 
 function WorkLine({ w }: { w: WorkItem }) {
   return (
-    <Link href={`/project/${w.project._id}`} className="block rounded-lg px-1.5 py-1 hover:bg-panel2/60">
+    <Link href={w.sample ? `/samples/${w.project._id}` : `/project/${w.project._id}`} className="block rounded-lg px-1.5 py-1 hover:bg-panel2/60">
       <span className="flex min-w-0 items-center gap-1.5 text-xs">
         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
         <span className="truncate font-semibold">{w.step.title}</span>
+        {w.sample && <span className="chip shrink-0 bg-accent-soft text-accent">Sample</span>}
         {w.step.dueDate && <span className="ml-auto shrink-0"><DeadlineBadge date={w.step.dueDate} /></span>}
       </span>
       <span className="block truncate pl-3 text-[0.6875rem] text-muted">
-        {workProject(w)}{w.step.module ? ` › ${w.step.module}` : ""}{w.step.updatedAt ? ` · ${timeAgo(w.step.updatedAt)}` : ""}
+        {w.sample ? w.typeName || "Sample" : workProject(w)}{w.step.module ? ` › ${w.step.module}` : ""}{w.step.updatedAt ? ` · ${timeAgo(w.step.updatedAt)}` : ""}
       </span>
       {w.step.note && <span className="line-clamp-2 pl-3 text-[0.6875rem] text-fg/75">{w.step.note}</span>}
     </Link>

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { Document } from "mongodb";
 import { connectDB, notDeleted, notSample } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { PROJECT_LOOKUPS, TYPE_FIELDS } from "@/lib/projects";
@@ -20,7 +21,7 @@ export async function GET() {
   const running = { ...notDeleted, ...notSample, status: { $in: ["active", "on-hold"] }, "steps.assignees": s.id };
   const myOpen = [{ $unwind: "$steps" }, { $match: { "steps.assignees": s.id, "steps.status": { $ne: "done" } } }];
 
-  const [activeCount, dueSoon, overdue, completed30, myOpenCount, mySteps, upcoming, byType, activity, workload, people] = await Promise.all([
+  const [activeCount, dueSoon, overdue, completed30, myOpenCount, mySteps, upcoming, byType, activity, workload, people, sampleWork] = await Promise.all([
     projects.countDocuments(active),
     projects.countDocuments({ ...active, deadline: { $gte: today, $lte: weekAhead } }),
     projects.countDocuments({ ...active, deadline: { $lt: today, $ne: null } }),
@@ -94,17 +95,41 @@ export async function GET() {
       },
     ]).toArray(),
     db.collection("users").find({ ...notDeleted, active: { $ne: false } }, { projection: { name: 1, team: 1 } }).sort({ name: 1 }).toArray(),
+    // Samples people marked "I'm working" on.
+    projects.aggregate([
+      { $match: { ...notDeleted, sample: true, "workers.0": { $exists: true } } },
+      ...PROJECT_LOOKUPS,
+      { $project: { theme: 1, notes: 1, workers: 1, workingSince: 1, updatedAt: 1, brand: "$brand.name", typeIcon: "$type.icon", typeName: "$type.name" } },
+    ]).toArray(),
   ]);
+
+  // Samples as work items, shaped like steps so the panel lists them the same way.
+  const sampleItems = new Map<string, Document[]>();
+  for (const x of sampleWork) {
+    const since = new Date(x.workingSince || x.updatedAt || 0).toISOString();
+    const item = {
+      sample: true,
+      step: { id: "sample", title: [x.brand, x.theme].filter(Boolean).join(" — ") || `${x.typeName || ""} sample`, status: "doing", dueDate: null, note: x.notes, updatedAt: since },
+      project: { _id: x._id, theme: x.theme },
+      typeIcon: x.typeIcon, typeName: x.typeName,
+    };
+    for (const id of x.workers as string[]) sampleItems.set(id, [...(sampleItems.get(id) || []), item]);
+  }
 
   // Only people who are on something right now (pressed "I'm doing"), most recently active first.
   const names = new Map(people.map((u) => [String(u._id), u]));
-  const team = workload
-    .filter((w) => w.doing.length && names.has(String(w._id)))
-    .map((w) => {
-      const u = names.get(String(w._id))!;
-      return { id: String(u._id), name: u.name, team: u.team || "", open: w.open, overdue: w.overdue, doing: w.doing };
+  const loads = new Map(workload.map((w) => [String(w._id), w]));
+  const latest = (items: Document[]) => String(items[0]?.step.updatedAt || "");
+  const team = [...new Set([...loads.keys(), ...sampleItems.keys()])]
+    .filter((id) => names.has(id))
+    .map((id) => {
+      const u = names.get(id)!;
+      const w = loads.get(id);
+      const doing = [...(sampleItems.get(id) || []), ...(w?.doing || [])].sort((a, b) => String(b.step.updatedAt || "").localeCompare(String(a.step.updatedAt || ""))).slice(0, 5);
+      return { id, name: u.name, team: u.team || "", open: w?.open || 0, overdue: w?.overdue || 0, doing };
     })
-    .sort((a, b) => String(b.doing[0]?.step.updatedAt || "").localeCompare(String(a.doing[0]?.step.updatedAt || "")));
+    .filter((m) => m.doing.length)
+    .sort((a, b) => latest(b.doing).localeCompare(latest(a.doing)));
 
   return NextResponse.json({
     stats: { active: activeCount, dueSoon, overdue, completed30, myOpenSteps: myOpenCount[0]?.n || 0 },
