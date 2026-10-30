@@ -77,12 +77,16 @@ export async function PATCH(req: Request, { params }: Ctx) {
   // The step is in progress while anyone is marked.
   const wasWorking = stepWorkers(step);
   let workers = wasWorking;
-  const markMe = typeof b.working === "boolean" ? b.working : b.status === "doing" ? true : undefined;
+  // Never touches anyone else's mark: "doing" / "todo" on an open step (also what older app versions send) mean
+  // "mark me" / "unmark me". Only finishing the step clears everyone.
+  const markMe = typeof b.working === "boolean" ? b.working
+    : step.status !== "done" && (b.status === "doing" || b.status === "todo") ? b.status === "doing" : undefined;
   if (markMe !== undefined && step.status !== "done") {
     workers = markMe ? [...new Set([...workers, s.id])] : workers.filter((w) => w !== s.id);
     if (markMe && !(next.assignees || []).includes(s.id)) next.assignees = [...(next.assignees || []), s.id];
+    if (step.kind !== "languages") status = undefined;
   }
-  if (status === "done" || (status === "todo" && b.working === undefined)) workers = [];
+  if (status === "done") workers = [];
   // Taken off the step = not working on it either.
   next.working = workers.filter((w) => (next.assignees || []).includes(w));
   if (!status && step.kind !== "languages" && step.status !== "done") status = next.working.length ? "doing" : "todo";
