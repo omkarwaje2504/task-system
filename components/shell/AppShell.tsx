@@ -209,7 +209,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
       <AppearanceSync />
-      <TaskAlert />
+      <Suspense><TaskAlert /></Suspense>
       {/* Notifications: top-right corner on desktop (phones have it in the top bar) */}
       <div className="glass fixed top-3 right-4 z-40 hidden rounded-full p-0.5 lg:block"><NotificationBell /></div>
       {/* Desktop sidebar */}

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { BellRing } from "lucide-react";
 import { fetcher } from "@/lib/client";
@@ -58,7 +57,6 @@ async function systemNotify(title: string, body: string, id: string) {
  */
 export default function TaskAlert() {
   const { data } = usePendingTasks();
-  const pathname = usePathname();
   const count = data?.count || 0;
   const first = data?.items[0];
   const seen = useRef(new Set<string>());
@@ -115,7 +113,7 @@ export default function TaskAlert() {
       className="task-flash glass fixed top-3 left-1/2 z-[60] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-bold shadow-lg lg:top-3.5">
       <BellRing className="bell-ring h-4 w-4 shrink-0 text-danger" />
       <span className="truncate">
-        {count === 1 ? `${first.createdByName.split(" ")[0]} gave you a task` : `${count} tasks waiting for you`} — {pathname === "/dashboard" ? "tap to open" : "tap to acknowledge"}
+        {count === 1 ? `${first.createdByName.split(" ")[0]} gave you a task` : `${count} tasks waiting for you`} — tap to acknowledge
       </span>
     </Link>
   );
