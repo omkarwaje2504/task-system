@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { CalendarClock, CircleCheck, FolderKanban, ImagePlus, Plus, Rocket, SquareCheckBig, TriangleAlert, type LucideIcon } from "lucide-react";
 import TypeIcon from "@/components/ui/TypeIcon";
@@ -8,6 +8,7 @@ import { Avatar, DeadlineBadge, EmptyState, ProgressBar, Skeleton } from "@/comp
 import NewProjectModal from "@/components/projects/NewProjectModal";
 import { projectTitle } from "@/components/projects/ProjectCard";
 import StepRowItem from "@/components/projects/StepRowItem";
+import GeneralTasksPanel from "@/components/tasks/GeneralTasks";
 import { greeting, timeAgo, useApi, useHydrated, useMe, useTypes } from "@/lib/client";
 import { projectProgress } from "@/lib/workflow";
 import type { Activity, Project, StepRow } from "@/lib/types";
@@ -150,6 +151,7 @@ export default function Dashboard() {
                 ? <Empty>Nothing assigned to you right now. Enjoy! ☕</Empty>
                 : data.mySteps.map((r) => <StepRowItem key={`${r.project._id}-${r.step.id}`} row={r} onChange={() => mutate()} />)}
             </Panel>
+            <Suspense><GeneralTasksPanel /></Suspense>
 
             <Panel title="Coming up" action={<span className="text-[0.6875rem] text-muted">Nearest deadlines</span>} flush>
               {data.upcoming.length === 0 ? <Empty>No deadlines set on active projects.</Empty> : (

@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/bits";
 import ThemeToggle from "./ThemeToggle";
 import AccountModal from "./AccountModal";
 import NotificationBell from "./NotificationBell";
+import TaskAlert from "@/components/tasks/TaskAlert";
 import { AppearanceSync } from "@/components/settings/useAppearance";
 import TabIcon, { type TabIconName } from "./TabIcon";
 
@@ -208,6 +209,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
       <AppearanceSync />
+      <TaskAlert />
       {/* Notifications: top-right corner on desktop (phones have it in the top bar) */}
       <div className="glass fixed top-3 right-4 z-40 hidden rounded-full p-0.5 lg:block"><NotificationBell /></div>
       {/* Desktop sidebar */}

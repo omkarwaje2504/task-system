@@ -15,12 +15,14 @@ import { escapeRegex } from "./db";
  */
 
 export type NotifyInput = {
-  type: "step.assigned" | "step.doing" | "step.done" | "sample.working";
+  type: "step.assigned" | "step.doing" | "step.done" | "sample.working" | "task.assigned" | "task.comment" | "task.ack" | "task.done";
   title: string;
   body: string;
   /** Where clicking it goes, e.g. /project/<id> */
   link: string;
   project?: ObjectId | string | null;
+  /** Pushes with the same tag replace each other on the device (reminders). */
+  tag?: string;
 };
 
 const pushConfigured = () => !!(process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY);
@@ -93,6 +95,11 @@ async function accessToken() {
   return token.value;
 }
 
+/** Push only (no new entry in the panel) — used for repeat reminders. */
+export async function pushTo(db: Db, userIds: string[], n: NotifyInput) {
+  if (pushConfigured() && userIds.length) await push(db, userIds, n);
+}
+
 async function push(db: Db, userIds: string[], n: NotifyInput) {
   const users = await db.collection("users").find(
     { _id: { $in: userIds.map((u) => new ObjectId(u)) }, "fcmTokens.0": { $exists: true } },
@@ -113,7 +120,15 @@ async function push(db: Db, userIds: string[], n: NotifyInput) {
           token: t,
           notification: { title: n.title, body: n.body },
           data: { link: n.link, type: n.type },
-          webpush: { fcm_options: { link: `${base}${n.link}` }, notification: { icon: `${base}/apple-icon`, badge: `${base}/apple-icon` } },
+          webpush: {
+            fcm_options: { link: `${base}${n.link}` },
+            notification: {
+              icon: `${base}/apple-icon`, badge: `${base}/apple-icon`,
+              // Priority tasks stay on screen and buzz again on each reminder.
+              ...(n.tag ? { tag: n.tag, renotify: true } : {}),
+              ...(n.type.startsWith("task.") ? { requireInteraction: true } : {}),
+            },
+          },
         },
       }),
     });

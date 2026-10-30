@@ -12,7 +12,14 @@ export function GET() {
     ? `importScripts("https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-messaging-compat.js");
 firebase.initializeApp(${JSON.stringify(config)});
-firebase.messaging();`
+firebase.messaging();
+// Task reminders the app shows itself carry data.link (FCM's own pushes open their link).
+self.addEventListener("notificationclick", (e) => {
+  const link = e.notification.data && e.notification.data.link;
+  if (!link) return;
+  e.notification.close();
+  e.waitUntil(clients.openWindow(link));
+});`
     : "// Push isn't set up: add the FIREBASE_* settings to .env.";
   return new Response(js, { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-cache" } });
 }

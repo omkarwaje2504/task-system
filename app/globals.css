@@ -445,3 +445,45 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---- Priority task alert: ringing bell, flashing rows, screen-edge flash ---- */
+@keyframes bell-ring {
+  0%, 50%, 100% { transform: rotate(0); }
+  5%, 15%, 25% { transform: rotate(16deg); }
+  10%, 20%, 30% { transform: rotate(-16deg); }
+}
+@keyframes task-flash {
+  0%, 100% { background-color: color-mix(in srgb, var(--danger) 10%, transparent); }
+  50% { background-color: color-mix(in srgb, var(--danger) 26%, transparent); }
+}
+@keyframes task-flash-ring {
+  0%, 100% { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--danger) 40%, transparent); }
+  50% { box-shadow: 0 0 0 3px var(--danger), 0 0 24px color-mix(in srgb, var(--danger) 45%, transparent); }
+}
+@keyframes screen-flash {
+  0%, 100% { box-shadow: inset 0 0 0 0 transparent; }
+  50% { box-shadow: inset 0 0 0 4px var(--danger), inset 0 0 60px color-mix(in srgb, var(--danger) 35%, transparent); }
+}
+.bell-ring {
+  transform-origin: 50% 10%;
+  animation: bell-ring 1.4s ease-in-out infinite;
+}
+.task-flash {
+  color: var(--fg);
+  animation: task-flash 1.2s ease-in-out infinite;
+}
+.task-flash-border {
+  animation: task-flash-ring 1.2s ease-in-out infinite;
+}
+:root[data-task-alert] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+  animation: screen-flash 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bell-ring, .task-flash, .task-flash-border, :root[data-task-alert] body::after { animation-duration: 3s; }
+  .bell-ring { animation: none; }
+}

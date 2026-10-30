@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { Bell, BellOff, BellRing, CheckCheck, CircleCheck, CircleDot, FlaskConical, UserPlus, type LucideIcon } from "lucide-react";
+import { Bell, BellOff, BellRing, CheckCheck, ChevronDown, CircleCheck, CircleDot, Eye, FlaskConical, MessageSquare, UserPlus, Zap, type LucideIcon } from "lucide-react";
+import { usePendingTasks } from "@/components/tasks/TaskAlert";
 import FloatingPanel from "@/components/ui/Floating";
 import { Avatar } from "@/components/ui/bits";
 import { api, fetcher, timeAgo } from "@/lib/client";
@@ -13,7 +14,29 @@ import { disablePush, enablePush, onForegroundPush, pushSupported, savedToken } 
 type Note = { _id: string; type: string; title: string; body: string; link: string; actorName?: string; read: boolean; createdAt: string };
 type Feed = { items: Note[]; unread: number; push: boolean };
 
-const ICONS: Record<string, LucideIcon> = { "step.assigned": UserPlus, "step.doing": CircleDot, "step.done": CircleCheck, "sample.working": FlaskConical };
+const ICONS: Record<string, LucideIcon> = {
+  "step.assigned": UserPlus, "step.doing": CircleDot, "step.done": CircleCheck, "sample.working": FlaskConical,
+  "task.assigned": Zap, "task.comment": MessageSquare, "task.ack": Eye, "task.done": CircleCheck,
+};
+
+function NoteRow({ n, onOpen }: { n: Note; onOpen: (n: Note) => void }) {
+  const Icon = ICONS[n.type] || Bell;
+  return (
+    <button onClick={() => onOpen(n)}
+      className={`flex w-full items-start gap-2.5 border-b border-line/60 px-3 py-2.5 text-left last:border-0 hover:bg-panel2/60 ${n.read ? "" : "bg-accent-soft/40"}`}>
+      <span className="relative mt-0.5 shrink-0">
+        <Avatar name={n.actorName} size="sm" />
+        <span className="glass absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full !shadow-none"><Icon className="h-2.5 w-2.5 text-accent" /></span>
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className={`block text-[0.8125rem] leading-snug ${n.read ? "" : "font-semibold"}`}>{n.title}</span>
+        {n.body && <span className="block truncate text-[0.6875rem] text-muted">{n.body}</span>}
+        <span className="text-[0.625rem] text-muted">{timeAgo(n.createdAt)}</span>
+      </span>
+      {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />}
+    </button>
+  );
+}
 
 /** Bell (top right) with the unread count; opens the notification panel. */
 export default function NotificationBell() {
@@ -22,6 +45,9 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [pushOn, setPushOn] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showRead, setShowRead] = useState(false);
+  const { data: pending } = usePendingTasks();
+  const ringing = (pending?.count || 0) > 0;
   const anchor = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const unread = data?.unread || 0;
@@ -85,7 +111,7 @@ export default function NotificationBell() {
   return (
     <>
       <button ref={anchor} onClick={() => setOpen(!open)} className="icon-btn relative" aria-label={unread ? `${unread} unread notifications` : "Notifications"} title="Notifications">
-        <Bell className="h-[18px] w-[18px]" />
+        {ringing ? <BellRing className="bell-ring h-[18px] w-[18px] text-danger" /> : <Bell className="h-[18px] w-[18px]" />}
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[0.5625rem] leading-none font-bold text-white">
             {unread > 99 ? "99+" : unread}
@@ -118,24 +144,22 @@ export default function NotificationBell() {
           <div className="min-h-0 overflow-y-auto">
             {!data ? <p className="px-3 py-6 text-center text-xs text-muted">Loading…</p>
               : data.items.length === 0 ? <p className="px-3 py-8 text-center text-xs text-muted">No notifications yet.</p>
-              : data.items.map((n) => {
-                const Icon = ICONS[n.type] || Bell;
-                return (
-                  <button key={n._id} onClick={() => openNote(n)}
-                    className={`flex w-full items-start gap-2.5 border-b border-line/60 px-3 py-2.5 text-left last:border-0 hover:bg-panel2/60 ${n.read ? "" : "bg-accent-soft/40"}`}>
-                    <span className="relative mt-0.5 shrink-0">
-                      <Avatar name={n.actorName} size="sm" />
-                      <span className="glass absolute -right-1 -bottom-1 flex h-4 w-4 items-center justify-center rounded-full !shadow-none"><Icon className="h-2.5 w-2.5 text-accent" /></span>
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className={`block text-[0.8125rem] leading-snug ${n.read ? "" : "font-semibold"}`}>{n.title}</span>
-                      {n.body && <span className="block truncate text-[0.6875rem] text-muted">{n.body}</span>}
-                      <span className="text-[0.625rem] text-muted">{timeAgo(n.createdAt)}</span>
-                    </span>
-                    {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />}
-                  </button>
-                );
-              })}
+              : <>
+                {data.items.filter((n) => !n.read).map((n) => <NoteRow key={n._id} n={n} onOpen={openNote} />)}
+                {data.unread === 0 && <p className="px-3 py-3 text-center text-xs text-muted">You&apos;re all caught up.</p>}
+                {/* Read ones folded into one group, hidden until opened. */}
+                {data.items.some((n) => n.read) && (
+                  <>
+                    <button onClick={() => setShowRead(!showRead)} aria-expanded={showRead}
+                      className="flex w-full items-center gap-2 border-b border-line/60 bg-panel2/40 px-3 py-2 text-left text-[0.6875rem] font-semibold text-muted hover:bg-panel2/70">
+                      <CheckCheck className="h-3.5 w-3.5" />
+                      <span className="flex-1">Read ({data.items.filter((n) => n.read).length})</span>
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showRead ? "rotate-180" : ""}`} />
+                    </button>
+                    {showRead && data.items.filter((n) => n.read).map((n) => <NoteRow key={n._id} n={n} onOpen={openNote} />)}
+                  </>
+                )}
+              </>}
           </div>
         </FloatingPanel>
       )}
