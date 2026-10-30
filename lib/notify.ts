@@ -124,7 +124,7 @@ async function push(db: Db, userIds: string[], n: NotifyInput) {
             fcm_options: { link: `${base}${n.link}` },
             notification: {
               icon: `${base}/apple-icon`, badge: `${base}/apple-icon`,
-              // Priority tasks stay on screen and buzz again on each reminder.
+              // General tasks stay on screen and buzz again on each reminder.
               ...(n.tag ? { tag: n.tag, renotify: true } : {}),
               ...(n.type.startsWith("task.") ? { requireInteraction: true } : {}),
             },

@@ -111,7 +111,7 @@ export default function NotificationBell() {
   return (
     <>
       <button ref={anchor} onClick={() => setOpen(!open)} className="icon-btn relative" aria-label={unread ? `${unread} unread notifications` : "Notifications"} title="Notifications">
-        {ringing ? <BellRing className="bell-ring h-[18px] w-[18px] text-danger" /> : <Bell className="h-[18px] w-[18px]" />}
+        {ringing ? <BellRing className="bell-ring h-[18px] w-[18px] text-alert-ink" /> : <Bell className="h-[18px] w-[18px]" />}
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[0.5625rem] leading-none font-bold text-white">
             {unread > 99 ? "99+" : unread}

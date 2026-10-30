@@ -69,7 +69,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       set.acks = (t.acks || []).filter((a: { user: string }) => assignees.includes(a.user));
       const added = assignees.filter((a) => !(t.assignees as string[]).includes(a));
       if (added.length) {
-        await notify(db, s, added, { type: "task.assigned", title: `🔔 ${s.name} gave you a priority task`, body: String(set.text || t.text).slice(0, 160), link, tag: `task-${t._id}` });
+        await notify(db, s, added, { type: "task.assigned", title: `🔔 ${s.name} gave you a general task`, body: String(set.text || t.text).slice(0, 160), link, tag: `task-${t._id}` });
       }
     }
   }

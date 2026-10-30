@@ -20,6 +20,10 @@
   --accent-fg: #ffffff;
   --accent-soft: rgba(0, 122, 255, 0.12);
   --danger: #ff3b30;
+  /* General task alerts: light yellow (fill) and a deeper yellow for icons/text on light glass. */
+  --alert: #ffd60a;
+  --alert-ink: #a87b00;
+  --alert-fg: #1c1c1e;
   --glass: rgba(255, 255, 255, var(--glass-a, 0.5));
   --glass-edge: rgba(255, 255, 255, 0.45);
   --glass-hi: inset 0 1px 0.5px rgba(255, 255, 255, 0.95), inset 0 -1px 0.5px rgba(255, 255, 255, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.35);
@@ -44,6 +48,9 @@
   --accent-fg: #ffffff;
   --accent-soft: rgba(10, 132, 255, 0.2);
   --danger: #ff453a;
+  --alert: #ffd60a;
+  --alert-ink: #ffd60a;
+  --alert-fg: #1c1c1e;
   --glass: rgba(24, 24, 28, var(--glass-a, 0.5));
   --glass-edge: rgba(255, 255, 255, 0.07);
   --glass-hi: inset 0 1px 0.5px rgba(255, 255, 255, 0.22), inset 0 -1px 0.5px rgba(255, 255, 255, 0.07), inset 0 0 24px rgba(255, 255, 255, 0.035);
@@ -66,6 +73,9 @@
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-danger: var(--danger);
+  --color-alert: var(--alert);
+  --color-alert-ink: var(--alert-ink);
+  --color-alert-fg: var(--alert-fg);
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", var(--font-geist-mono), monospace;
   /* iOS tops out at Bold for titles; "extrabold" reads too heavy next to SF. */
@@ -446,23 +456,23 @@ body {
   }
 }
 
-/* ---- Priority task alert: ringing bell, flashing rows, screen-edge flash ---- */
+/* ---- General task alert: ringing bell, flashing rows, screen-edge flash ---- */
 @keyframes bell-ring {
   0%, 50%, 100% { transform: rotate(0); }
   5%, 15%, 25% { transform: rotate(16deg); }
   10%, 20%, 30% { transform: rotate(-16deg); }
 }
 @keyframes task-flash {
-  0%, 100% { background-color: color-mix(in srgb, var(--danger) 10%, transparent); }
-  50% { background-color: color-mix(in srgb, var(--danger) 26%, transparent); }
+  0%, 100% { background-color: color-mix(in srgb, var(--alert) 16%, transparent); }
+  50% { background-color: color-mix(in srgb, var(--alert) 40%, transparent); }
 }
 @keyframes task-flash-ring {
-  0%, 100% { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--danger) 40%, transparent); }
-  50% { box-shadow: 0 0 0 3px var(--danger), 0 0 24px color-mix(in srgb, var(--danger) 45%, transparent); }
+  0%, 100% { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--alert) 40%, transparent); }
+  50% { box-shadow: 0 0 0 3px var(--alert), 0 0 24px color-mix(in srgb, var(--alert) 45%, transparent); }
 }
 @keyframes screen-flash {
   0%, 100% { box-shadow: inset 0 0 0 0 transparent; }
-  50% { box-shadow: inset 0 0 0 4px var(--danger), inset 0 0 60px color-mix(in srgb, var(--danger) 35%, transparent); }
+  50% { box-shadow: inset 0 0 0 4px var(--alert), inset 0 0 60px color-mix(in srgb, var(--alert) 35%, transparent); }
 }
 .bell-ring {
   transform-origin: 50% 10%;

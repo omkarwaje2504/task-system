@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   const { insertedId } = await db.collection("generalTasks").insertOne(doc);
   await logActivity(db, s, "task.created", `gave a task to ${assignees.length} ${assignees.length === 1 ? "person" : "people"}`);
   await notify(db, s, assignees, {
-    type: "task.assigned", title: `🔔 ${s.name} gave you a priority task`, body: text.slice(0, 160),
+    type: "task.assigned", title: `🔔 ${s.name} gave you a general task`, body: text.slice(0, 160),
     link: `/dashboard?task=${insertedId}`, tag: `task-${insertedId}`,
   });
   return NextResponse.json({ _id: insertedId, ...doc });

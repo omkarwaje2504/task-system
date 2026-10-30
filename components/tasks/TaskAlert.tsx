@@ -18,7 +18,27 @@ const bellIcon = (bg: string, fg: string) => `data:image/svg+xml,${encodeURIComp
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${bg}"/><path d="M32 12a14 14 0 0 0-14 14v9l-5 7h38l-5-7v-9a14 14 0 0 0-14-14Zm-6 34a6 6 0 0 0 12 0Z" fill="${fg}"/></svg>`,
 )}`;
 /** The tab icon blinks between these two. */
-const BELL_ICONS = [bellIcon("#ff3b30", "#fff"), bellIcon("#fff", "#ff3b30")];
+const BELL_ICONS = [bellIcon("#ffd60a", "#1c1c1e"), bellIcon("#1c1c1e", "#ffd60a")];
+
+/**
+ * A once-a-second tick that keeps going while the tab is in the background.
+ * Browsers slow page timers in hidden tabs to once a minute after a few
+ * minutes; a timer inside a worker isn't slowed that way.
+ */
+function backgroundSafeTicker(fn: () => void, ms: number) {
+  try {
+    const src = URL.createObjectURL(new Blob([`setInterval(() => postMessage(0), ${ms});`], { type: "text/javascript" }));
+    const w = new Worker(src);
+    w.onmessage = fn;
+    return () => {
+      w.terminate();
+      URL.revokeObjectURL(src);
+    };
+  } catch {
+    const t = setInterval(fn, ms);
+    return () => clearInterval(t);
+  }
+}
 
 /** A short double "ding" (only plays once the page has had a click — browser rule). */
 function ding() {
@@ -52,7 +72,7 @@ async function systemNotify(title: string, body: string, id: string) {
 }
 
 /**
- * While I have unacknowledged priority tasks: the browser tab's title and icon
+ * While I have unacknowledged general tasks: the browser tab's title and icon
  * blink (red bell), the screen edge flashes, a banner sits on
  * top, and every minute it dings + reminds (system notification if the tab is
  * in the background).
@@ -73,21 +93,21 @@ export default function TaskAlert() {
     icon.rel = "icon";
     icon.type = "image/svg+xml";
     document.head.appendChild(icon);
-    const ours = (t: string) => t.startsWith("🔴") || t.startsWith("🔔");
+    const ours = (t: string) => t.startsWith("🟡") || t.startsWith("🔔");
     let base = ours(document.title) ? "Task System" : document.title;
     let on = false;
     const words = `${count} NEW TASK${count === 1 ? "" : "S"}`;
     const blink = () => {
       if (!ours(document.title)) base = document.title;
       on = !on;
-      document.title = on ? `🔴 ${words} — acknowledge!` : `🔔 (${count}) ${base}`;
+      document.title = on ? `🟡 ${words} — acknowledge!` : `🔔 (${count}) ${base}`;
       icon.href = BELL_ICONS[on ? 0 : 1];
       if (icon.parentNode !== document.head || document.head.lastElementChild !== icon) document.head.appendChild(icon);
     };
     blink();
-    const tick = setInterval(blink, 1000);
+    const stop = backgroundSafeTicker(blink, 1000);
     return () => {
-      clearInterval(tick);
+      stop();
       delete root.dataset.taskAlert;
       icon.remove();
       if (ours(document.title)) document.title = base;
@@ -101,7 +121,7 @@ export default function TaskAlert() {
     fresh.forEach((t) => seen.current.add(t._id));
     if (fresh.length) {
       ding();
-      toast.info(`🔔 ${fresh[0].createdByName} gave you a priority task: ${fresh[0].text.slice(0, 80)}`);
+      toast.info(`🔔 ${fresh[0].createdByName} gave you a general task: ${fresh[0].text.slice(0, 80)}`);
       systemNotify(`🔔 Task from ${fresh[0].createdByName}`, fresh[0].text.slice(0, 140), fresh[0]._id);
     }
   }, [data]);
@@ -120,7 +140,7 @@ export default function TaskAlert() {
   return (
     <Link href={`/dashboard?task=${first._id}`} scroll={false}
       className="task-flash glass fixed top-3 left-1/2 z-[60] flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-bold shadow-lg lg:top-3.5">
-      <BellRing className="bell-ring h-4 w-4 shrink-0 text-danger" />
+      <BellRing className="bell-ring h-4 w-4 shrink-0 text-alert-ink" />
       <span className="truncate">
         {count === 1 ? `${first.createdByName.split(" ")[0]} gave you a task` : `${count} tasks waiting for you`} — tap to acknowledge
       </span>

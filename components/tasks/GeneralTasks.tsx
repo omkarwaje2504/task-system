@@ -88,7 +88,7 @@ function NewTaskModal({ onClose }: { onClose: () => void }) {
     }
   }
   return (
-    <Modal open onClose={onClose} title="New priority task" icon={<Zap className="h-4 w-4" />}
+    <Modal open onClose={onClose} title="New general task" icon={<Zap className="h-4 w-4" />}
       subtitle="Quick work for anyone. They get a notification and a reminder every minute until they acknowledge it."
       footer={<><button className="btn-ghost" onClick={onClose}>Cancel</button>
         <button className="btn-primary" onClick={save} disabled={saving || !text.trim() || !people.length}>{saving ? "Sending…" : "Send task"}</button></>}>
@@ -169,7 +169,7 @@ function TaskModal({ task, onClose, onChange }: { task: GeneralTask; onClose: ()
 
   return (
     <Modal open onClose={onClose} size="lg" icon={<Zap className="h-4 w-4" />}
-      title={task.done ? "Task (done)" : "Priority task"}
+      title={task.done ? "Task (done)" : "General task"}
       subtitle={`From ${task.createdByName} · ${timeAgo(task.createdAt)}`}
       footer={
         <>
@@ -199,7 +199,7 @@ function TaskModal({ task, onClose, onChange }: { task: GeneralTask; onClose: ()
                 <span className="flex-1 font-semibold">{nameOf(id) || "Someone"}</span>
                 {ack
                   ? <span className="chip bg-accent-soft text-accent"><Check className="h-3 w-3" />Seen {timeAgo(ack.at)}</span>
-                  : <span className="chip bg-danger/10 text-danger">Not seen yet</span>}
+                  : <span className="chip bg-alert/25 text-alert-ink">Not seen yet</span>}
               </li>
             );
           })}
@@ -267,7 +267,7 @@ function TaskRow({ t, onOpen }: { t: GeneralTask; onOpen: () => void }) {
   return (
     <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => e.key === "Enter" && onOpen()}
       className={`flex cursor-pointer items-start gap-2.5 rounded-xl px-2 py-2 hover:bg-panel2/60 ${waiting ? "task-flash" : ""} ${t.done ? "opacity-60" : ""}`}>
-      <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${t.done ? "bg-accent text-[var(--accent-fg)]" : waiting ? "bg-danger text-white" : "bg-accent-soft text-accent"}`}>
+      <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${t.done ? "bg-accent text-[var(--accent-fg)]" : waiting ? "bg-alert text-alert-fg" : "bg-accent-soft text-accent"}`}>
         {t.done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : waiting ? <BellRing className="bell-ring h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
       </span>
       <span className="min-w-0 flex-1">
@@ -288,7 +288,7 @@ function TaskRow({ t, onOpen }: { t: GeneralTask; onOpen: () => void }) {
   );
 }
 
-/** Dashboard: priority tasks given to me or by me. ?task=<id> opens one (from notifications). */
+/** Dashboard: general tasks given to me or by me. ?task=<id> opens one (from notifications). */
 export default function GeneralTasksPanel() {
   const { data: me } = useMe();
   const { data: tasks, mutate } = useApi<GeneralTask[]>("/api/general-tasks");
@@ -316,8 +316,8 @@ export default function GeneralTasksPanel() {
     <section className={`card overflow-hidden !p-0 ${waiting ? "task-flash-border" : ""}`}>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-line px-3 py-2">
         <h2 className="flex items-center gap-1.5 text-[0.8125rem] font-extrabold">
-          <Zap className="h-3.5 w-3.5 text-accent" />Priority tasks
-          {waiting > 0 && <span className="chip bg-danger text-white">{waiting} new</span>}
+          <Zap className="h-3.5 w-3.5 text-accent" />General tasks
+          {waiting > 0 && <span className="chip bg-alert text-alert-fg">{waiting} new</span>}
         </h2>
         <button className="btn-primary btn-sm" onClick={() => setCreating(true)}><Plus className="h-3.5 w-3.5" />Give a task</button>
       </div>
