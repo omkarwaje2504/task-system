@@ -1,29 +1,32 @@
 import "server-only";
 import { ObjectId, type Db } from "mongodb";
+import { stepWorkers, type ProjectStep } from "./workflow";
 
 /**
  * One "I'm working" at a time per person. Starting on something clears the
- * person's other marks: steps they're on that are in progress go back to no
- * status, and they're taken off any other sample they're working on.
+ * person's other marks: they're taken off other steps' "I'm working" (a step
+ * nobody is left working on goes back to no status) and off other samples.
  * Returns what was cleared, so the UI can say so.
  */
 export async function stopOtherWork(db: Db, userId: string, keep: { project?: ObjectId; stepId?: string }) {
   const now = new Date();
   const stopped: string[] = [];
 
-  // Steps in progress that I'm on (except the one I'm starting).
+  // Steps I'm marked "I'm working" on (except the one I'm starting): take only me off.
   const projects = await db.collection("projects").find(
-    { deleted: { $ne: true }, steps: { $elemMatch: { status: "doing", assignees: userId } } },
+    { deleted: { $ne: true }, steps: { $elemMatch: { status: "doing", $or: [{ working: userId }, { working: { $exists: false }, assignees: userId }] } } },
     { projection: { steps: 1, theme: 1, legacyName: 1 } },
   ).toArray();
   for (const p of projects) {
     let changed = false;
-    const steps = p.steps.map((s: { id: string; title: string; status: string; assignees?: string[] }) => {
+    const steps = p.steps.map((s: ProjectStep) => {
       const isKept = keep.project && String(p._id) === String(keep.project) && s.id === keep.stepId;
-      if (isKept || s.status !== "doing" || !(s.assignees || []).includes(userId)) return s;
+      const workers = stepWorkers(s);
+      if (isKept || !workers.includes(userId)) return s;
       changed = true;
       stopped.push(`“${s.title}”${p.theme || p.legacyName ? ` (${p.theme || p.legacyName})` : ""}`);
-      return { ...s, status: "todo", updatedAt: now.toISOString() };
+      const working = workers.filter((w) => w !== userId);
+      return { ...s, working, status: working.length ? "doing" : "todo", updatedAt: now.toISOString() };
     });
     if (changed) await db.collection("projects").updateOne({ _id: p._id }, { $set: { steps, updatedAt: now } });
   }

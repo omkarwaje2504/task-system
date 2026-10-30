@@ -72,6 +72,8 @@ export async function GET() {
           person: "$steps.assignees",
           item: {
             step: { id: "$steps.id", title: "$steps.title", status: "$steps.status", dueDate: "$steps.dueDate", note: "$steps.note", updatedAt: "$steps.updatedAt", module: "$steps.module" },
+            // This person pressed "I'm working" (older steps without the list: everyone on an in-progress step).
+            on: { $cond: [{ $isArray: "$steps.working" }, { $in: ["$steps.assignees", "$steps.working"] }, { $eq: ["$steps.status", "doing"] }] },
             project: { _id: "$_id", theme: "$theme", legacyName: "$legacyName" },
             brand: "$brand.name", typeIcon: "$type.icon", typeName: "$type.name",
           },
@@ -90,7 +92,7 @@ export async function GET() {
       {
         $project: {
           open: 1, overdue: 1,
-          doing: { $slice: [{ $filter: { input: "$items", cond: { $eq: ["$$this.step.status", "doing"] } } }, 5] },
+          doing: { $slice: [{ $filter: { input: "$items", cond: "$$this.on" } }, 5] },
         },
       },
     ]).toArray(),

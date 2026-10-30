@@ -9,7 +9,7 @@ import { Avatar, DeadlineBadge, ProgressBar, SortTh, useSort } from "@/component
 import { useUserName } from "@/components/ui/UserPicker";
 import { api, movedOffText, refresh, useMe } from "@/lib/client";
 import { toast, toastError } from "@/lib/toast";
-import { checklistStatus, countSummary, projectProgress, stepPeople, workingStep, type CountSummary, type ProjectStep } from "@/lib/workflow";
+import { checklistStatus, countSummary, projectProgress, stepPeople, stepWorkers, workingStep, type CountSummary, type ProjectStep } from "@/lib/workflow";
 import type { Project } from "@/lib/types";
 
 export function projectTitle(p: Pick<Project, "brand" | "theme" | "legacyName" | "type">) {
@@ -120,8 +120,7 @@ export function DoingButton({ p }: { p: Project }) {
   const [busy, setBusy] = useState(false);
   const step = workingStep(p.steps);
   if (!step || p.status === "completed" || !me) return null;
-  const people = stepPeople(step);
-  const onIt = step.status === "doing" && people.includes(me.id);
+  const onIt = stepWorkers(step).includes(me.id);
 
   async function toggle(e: MouseEvent) {
     e.preventDefault();
@@ -131,7 +130,7 @@ export function DoingButton({ p }: { p: Project }) {
     try {
       const res = await api<{ stopped?: string[] }>(`/api/projects/${p._id}/steps/${step.id}`, {
         method: "PATCH",
-        body: onIt ? { status: "todo" } : { status: "doing", assignees: people.includes(me.id) ? people : [...people, me.id] },
+        body: { working: !onIt },
       });
       toast.success(onIt ? `Cleared “I'm working” on “${step.title}”.` : `You're working on “${step.title}”.${movedOffText(res.stopped)}`);
       refresh("/api/projects", "/api/dashboard", "/api/steps", "/api/samples");

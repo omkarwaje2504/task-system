@@ -43,6 +43,8 @@ export type ProjectStep = StepTemplate & {
   updatedAt?: string;
   /** IT projects: the module (page / part / section) this task belongs to. Empty = General. */
   module?: string;
+  /** User ids who pressed "I'm working" — only them, not everyone on the step. */
+  working?: string[];
 };
 
 /**
@@ -80,6 +82,12 @@ export const cleanModule =(v: unknown) => String(v ?? "").trim().replace(/\s+/g,
 /** A step's people (older steps stored a single `assignee`). */
 export function stepPeople(step: Pick<ProjectStep, "assignees"> & { assignee?: string | null }): string[] {
   return step.assignees ?? (step.assignee ? [step.assignee] : []);
+}
+
+/** Who's marked "I'm working" on a step. Older steps without the list count everyone on an in-progress step. */
+export function stepWorkers(step: Pick<ProjectStep, "assignees" | "status" | "working"> & { assignee?: string | null }): string[] {
+  if (step.status === "done") return [];
+  return step.working ?? (step.status === "doing" ? stepPeople(step) : []);
 }
 
 export const STEP_KINDS: Record<StepKind, { label: string; help: string }> = {

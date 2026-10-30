@@ -8,9 +8,9 @@ import LanguagesPanel from "./LanguagesPanel";
 import QuantityPanel from "./QuantityPanel";
 import PrinterPanel from "./PrinterPanel";
 import { fmtDate, useMe } from "@/lib/client";
-import { languageProgress, STEP_KINDS, stepPeople, type ProjectStep, type StepData } from "@/lib/workflow";
+import { languageProgress, STEP_KINDS, stepPeople, stepWorkers, type ProjectStep, type StepData } from "@/lib/workflow";
 
-export type StepPatch = Partial<Pick<ProjectStep, "status" | "assignees" | "dueDate" | "note" | "link" | "title" | "module">> & { data?: Partial<StepData> };
+export type StepPatch = Partial<Pick<ProjectStep, "status" | "assignees" | "dueDate" | "note" | "link" | "title" | "module">> & { data?: Partial<StepData>; /** Your own "I'm working" mark. */ working?: boolean };
 
 /** Shared column layout so the header and every row line up like a table. */
 export const STEP_GRID = "grid grid-cols-[24px_minmax(0,1fr)_auto] items-center gap-x-3 lg:grid-cols-[24px_minmax(0,1fr)_110px_130px_92px_88px_128px]";
@@ -45,6 +45,8 @@ export default function StepCard({ step, index, isCurrent, projectId, onPatch, o
   const done = step.status === "done";
   const people = stepPeople(step);
   const names = people.map(nameOf).filter(Boolean);
+  const workers = stepWorkers(step);
+  const onIt = !!me && workers.includes(me.id);
   const [open, setOpen] = useState(isCurrent);
   const [link, setLink] = useState(step.link);
   const [busy, setBusy] = useState(false);
@@ -56,16 +58,15 @@ export default function StepCard({ step, index, isCurrent, projectId, onPatch, o
     setOpen(isCurrent);
   }
 
-  async function setStatus(status: ProjectStep["status"]) {
+  async function save(patch: StepPatch) {
     setBusy(true);
     try {
-      // "I'm working on it" also puts you on the step.
-      const joinMe = status === "doing" && me && !people.includes(me.id) ? { assignees: [...people, me.id] } : {};
-      await onPatch({ status, ...joinMe, ...(step.kind === "link" && link !== step.link ? { link } : {}) });
+      await onPatch({ ...patch, ...(step.kind === "link" && link !== step.link ? { link } : {}) });
     } finally {
       setBusy(false);
     }
   }
+  const setStatus = (status: ProjectStep["status"]) => save({ status });
 
   const langs = step.kind === "languages" ? languageProgress(step.data) : null;
   const summary = done
@@ -137,13 +138,16 @@ export default function StepCard({ step, index, isCurrent, projectId, onPatch, o
               <CalendarDays className="h-3.5 w-3.5" />Due
               <input type="date" className="input !w-auto !py-1 text-xs" value={step.dueDate || ""} onChange={(e) => onPatch({ dueDate: e.target.value || null })} />
             </label>
-            {/* "I'm working" toggle: on = in progress (and you're on it), off = back to no status. */}
+            {/* "I'm working" toggle, just for you: others on the step keep their own mark. */}
             {!done && step.kind !== "languages" && (
-              <button className={`${step.status === "doing" ? "btn-primary" : "btn-ghost"} btn-sm`} disabled={busy} aria-pressed={step.status === "doing"}
-                onClick={() => setStatus(step.status === "doing" ? "todo" : "doing")}
-                title={step.status === "doing" ? "Click to clear the mark" : "Mark this step as in progress"}>
-                {step.status === "doing" ? <><X className="h-3.5 w-3.5" />Uncheck</> : <>I&apos;m working on it</>}
+              <button className={`${onIt ? "btn-primary" : "btn-ghost"} btn-sm`} disabled={busy} aria-pressed={onIt}
+                onClick={() => save({ working: !onIt })}
+                title={onIt ? "Click to clear your mark" : "Mark that you're working on this step"}>
+                {onIt ? <><X className="h-3.5 w-3.5" />Uncheck</> : <>I&apos;m working on it</>}
               </button>
+            )}
+            {!done && workers.length > 0 && (
+              <span className="text-[0.6875rem] text-muted">Working now: {workers.map(nameOf).filter(Boolean).join(", ")}</span>
             )}
           </div>
 

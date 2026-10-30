@@ -5,7 +5,7 @@ import { logActivity } from "@/lib/activity";
 import { notify, projectLabel, watcherIds } from "@/lib/notify";
 import { stopOtherWork } from "@/lib/working";
 import { getProject } from "@/lib/projects";
-import { cleanModule, languageProgress, stepPeople, uid, type LanguageRow, type ProjectStep, type StepStatus, type VoiceState } from "@/lib/workflow";
+import { cleanModule, languageProgress, stepPeople, stepWorkers, uid, type LanguageRow, type ProjectStep, type StepStatus, type VoiceState } from "@/lib/workflow";
 
 type Ctx = { params: Promise<{ id: string; stepId: string }> };
 
@@ -73,6 +73,20 @@ export async function PATCH(req: Request, { params }: Ctx) {
     const { done, total } = languageProgress(next.data);
     status = total > 0 && done === total ? "done" : done > 0 ? "doing" : "todo";
   }
+  // "I'm working" is per person: { working: true } marks only me (and puts me on the step), false clears only me.
+  // The step is in progress while anyone is marked.
+  const wasWorking = stepWorkers(step);
+  let workers = wasWorking;
+  const markMe = typeof b.working === "boolean" ? b.working : b.status === "doing" ? true : undefined;
+  if (markMe !== undefined && step.status !== "done") {
+    workers = markMe ? [...new Set([...workers, s.id])] : workers.filter((w) => w !== s.id);
+    if (markMe && !(next.assignees || []).includes(s.id)) next.assignees = [...(next.assignees || []), s.id];
+  }
+  if (status === "done" || (status === "todo" && b.working === undefined)) workers = [];
+  // Taken off the step = not working on it either.
+  next.working = workers.filter((w) => (next.assignees || []).includes(w));
+  if (!status && step.kind !== "languages" && step.status !== "done") status = next.working.length ? "doing" : "todo";
+
   if (status && status !== step.status) {
     next.status = status;
     next.doneAt = status === "done" ? new Date().toISOString() : null;
@@ -86,14 +100,13 @@ export async function PATCH(req: Request, { params }: Ctx) {
   );
 
   // One "I'm working" at a time: marking this step clears my other marks (steps and samples).
-  const stopped = next.status === "doing" && b.status === "doing" && (next.assignees || []).includes(s.id)
-    ? await stopOtherWork(db, s.id, { project: project._id, stepId })
-    : [];
+  const startedMe = next.working.includes(s.id) && !wasWorking.includes(s.id);
+  const stopped = startedMe ? await stopOtherWork(db, s.id, { project: project._id, stepId }) : [];
 
   // Notifications: people newly put on the step; heads when someone starts or finishes it.
   const before = new Set(stepPeople(step));
   const added = (next.assignees || []).filter((a) => !before.has(a));
-  const moved = status && status !== step.status && (status === "doing" || status === "done") ? status : null;
+  const moved = startedMe ? "doing" : status && status !== step.status && status === "done" ? status : null;
   if (added.length || moved) {
     const where = await projectLabel(db, project);
     const link = `/project/${project._id}`;
