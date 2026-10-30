@@ -14,9 +14,11 @@ export const PENDING_URL = "/api/general-tasks/pending";
 /** Tasks waiting for my acknowledgement (shared by the alert and the bell). */
 export const usePendingTasks = () => useSWR<Pending>(PENDING_URL, fetcher, { refreshInterval: 15_000, revalidateOnFocus: true });
 
-const BELL_ICON = `data:image/svg+xml,${encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#ff3b30"/><path d="M32 12a14 14 0 0 0-14 14v9l-5 7h38l-5-7v-9a14 14 0 0 0-14-14Zm-6 34a6 6 0 0 0 12 0Z" fill="#fff"/></svg>`,
+const bellIcon = (bg: string, fg: string) => `data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${bg}"/><path d="M32 12a14 14 0 0 0-14 14v9l-5 7h38l-5-7v-9a14 14 0 0 0-14-14Zm-6 34a6 6 0 0 0 12 0Z" fill="${fg}"/></svg>`,
 )}`;
+/** The tab icon blinks between these two. */
+const BELL_ICONS = [bellIcon("#ff3b30", "#fff"), bellIcon("#fff", "#ff3b30")];
 
 /** A short double "ding" (only plays once the page has had a click — browser rule). */
 function ding() {
@@ -50,8 +52,8 @@ async function systemNotify(title: string, body: string, id: string) {
 }
 
 /**
- * While I have unacknowledged priority tasks: the tab title flashes with a bell,
- * the tab icon turns into a red bell, the screen edge flashes, a banner sits on
+ * While I have unacknowledged priority tasks: the browser tab's title and icon
+ * blink (red bell), the screen edge flashes, a banner sits on
  * top, and every minute it dings + reminds (system notification if the tab is
  * in the background).
  */
@@ -61,27 +63,34 @@ export default function TaskAlert() {
   const first = data?.items[0];
   const seen = useRef(new Set<string>());
 
-  // Title + tab icon + screen flash.
+  // Browser tab: the title and icon blink every second; plus the screen-edge flash.
   useEffect(() => {
     if (!count) return;
     const root = document.documentElement;
     root.dataset.taskAlert = "";
-    const icons = [...document.querySelectorAll<HTMLLinkElement>("link[rel~='icon']")];
-    const oldIcons = icons.map((l) => l.href);
-    icons.forEach((l) => (l.href = BELL_ICON));
-    let base = document.title;
+    // Our own icon link, added last so the browser uses it over the app icon (Next may swap its own on navigation).
+    const icon = document.createElement("link");
+    icon.rel = "icon";
+    icon.type = "image/svg+xml";
+    document.head.appendChild(icon);
+    const ours = (t: string) => t.startsWith("🔴") || t.startsWith("🔔");
+    let base = ours(document.title) ? "Task System" : document.title;
     let on = false;
-    const alertTitle = `🔔 ${count} new task${count === 1 ? "" : "s"}!`;
-    const tick = setInterval(() => {
-      if (!document.title.startsWith("🔔")) base = document.title;
+    const words = `${count} NEW TASK${count === 1 ? "" : "S"}`;
+    const blink = () => {
+      if (!ours(document.title)) base = document.title;
       on = !on;
-      document.title = on ? alertTitle : `🔔 ${base}`;
-    }, 1000);
+      document.title = on ? `🔴 ${words} — acknowledge!` : `🔔 (${count}) ${base}`;
+      icon.href = BELL_ICONS[on ? 0 : 1];
+      if (icon.parentNode !== document.head || document.head.lastElementChild !== icon) document.head.appendChild(icon);
+    };
+    blink();
+    const tick = setInterval(blink, 1000);
     return () => {
       clearInterval(tick);
       delete root.dataset.taskAlert;
-      icons.forEach((l, i) => (l.href = oldIcons[i]));
-      if (document.title.startsWith("🔔")) document.title = base;
+      icon.remove();
+      if (ours(document.title)) document.title = base;
     };
   }, [count]);
 
